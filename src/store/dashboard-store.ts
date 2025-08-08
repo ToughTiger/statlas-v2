@@ -8,6 +8,8 @@ import GenderDistributionChart from '@/components/dashboard/charts/gender-distri
 import AdverseEventsChart from '@/components/dashboard/charts/adverse-events-chart';
 import SitePerformanceChart from '@/components/dashboard/charts/site-performance-chart';
 import type { PredictionInput } from '@/ai/flows/predictive-analysis-flow';
+import { getAllSites, getSubjects } from '@/lib/api';
+import type { Subject, Site, Visit, Form, Field, LovValue } from '@/types';
 
 
 const allCharts = [
@@ -17,7 +19,7 @@ const allCharts = [
   { id: 'site', component: SitePerformanceChart, title: 'Site Performance' },
 ];
 
-const defaultCharts = allCharts.map(c => c.id);
+export type SelectOption = { label: string; value: string };
 
 export type DashboardLayout = {
   id: string;
@@ -59,6 +61,15 @@ interface DashboardState {
   currentPrediction: string;
   isLoadingPrediction: boolean;
   predictionType: string;
+  subjects: Subject[];
+  isLoadingSubjects: boolean;
+  
+  // Filter options
+  siteOptions: SelectOption[];
+  visitOptions: SelectOption[];
+  formOptions: SelectOption[];
+  fieldOptions: SelectOption[];
+  lovOptions: SelectOption[];
 
   // Actions
   fetchLayouts: () => Promise<void>;
@@ -74,6 +85,8 @@ interface DashboardState {
   openModal: () => void;
   closeModal: () => void;
   setPredictionType: (type: string) => void;
+  fetchSubjects: () => Promise<void>;
+  fetchFilterOptions: () => Promise<void>;
 }
 
 const createDefaultLayout = (): DashboardLayout => ({
@@ -108,6 +121,13 @@ export const useDashboardStore = create<DashboardState>((set, get) => ({
   currentPrediction: '',
   isLoadingPrediction: false,
   predictionType: 'site-enrollment',
+  subjects: [],
+  isLoadingSubjects: true,
+  siteOptions: [],
+  visitOptions: [],
+  formOptions: [],
+  fieldOptions: [],
+  lovOptions: [],
 
   // Actions
   fetchLayouts: async () => {
@@ -221,6 +241,7 @@ export const useDashboardStore = create<DashboardState>((set, get) => ({
 
   applyFilters: (newFilters: Filters) => {
     set({ filters: newFilters, isFetchingNewData: true });
+    get().fetchSubjects();
     setTimeout(() => {
         set({ isFetchingNewData: false, activeTab: "statistical" });
     }, 1500); // Simulate fetch
@@ -314,6 +335,37 @@ export const useDashboardStore = create<DashboardState>((set, get) => ({
         });
     } finally {
         set({ isLoadingPrediction: false });
+    }
+  },
+
+  fetchSubjects: async () => {
+    set({ isLoadingSubjects: true });
+    try {
+      const { filters } = get();
+      const siteIds = filters.sites.length > 0 ? filters.sites.join(',') : null;
+      const response = await getSubjects(siteIds);
+      if (response.success) {
+        set({ subjects: response.data, isLoadingSubjects: false });
+      } else {
+        throw new Error(response.message || 'Failed to fetch subjects');
+      }
+    } catch (error) {
+      console.error("Failed to fetch subjects:", error);
+      set({ subjects: [], isLoadingSubjects: false });
+    }
+  },
+  
+  fetchFilterOptions: async () => {
+    try {
+        const sitesRes = await getAllSites();
+        if (sitesRes.success) {
+            const siteOptions = sitesRes.data.map(site => ({ label: site.name, value: site.id }));
+            set({ siteOptions });
+        }
+        // In a real app, you would fetch other filter options too
+        // For now, we'll keep them as static placeholders
+    } catch (error) {
+        console.error("Failed to fetch filter options:", error);
     }
   },
 

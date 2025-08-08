@@ -24,35 +24,6 @@ import { MultiSelect } from "../ui/multi-select";
 import { Avatar, AvatarFallback, AvatarImage } from "../ui/avatar";
 import { useDashboardStore } from '@/store/dashboard-store';
 
-const siteOptions = [
-    { label: 'Site A', value: 'site-a' },
-    { label: 'Site B', value: 'site-b' },
-    { label: 'Site C', value: 'site-c' },
-];
-
-const visitOptions = [
-    { label: 'Screening', value: 'screening' },
-    { label: 'Week 1', value: 'week-1' },
-    { label: 'Week 4', value: 'week-4' },
-];
-
-const formOptions = [
-    { label: 'Demographics', value: 'demographics' },
-    { label: 'Vitals', value: 'vitals' },
-    { label: 'Adverse Events', value: 'adverse-events' },
-];
-
-const fieldOptions = [
-    { label: 'Age', value: 'age' },
-    { label: 'Gender', value: 'gender' },
-    { label: 'Heart Rate', value: 'heart-rate' },
-];
-
-const lovOptions = [
-    { label: 'LOV A', value: 'lov-a' },
-    { label: 'LOV B', value: 'lov-b' },
-];
-
 const operationOptions = [
     { label: 'T-Test', value: 't-test' },
     { label: 'ANOVA', value: 'anova' },
@@ -61,12 +32,27 @@ const operationOptions = [
     { label: 'Scatter Plot Analysis', value: 'scatter-plot' },
 ];
 
-
 export function AppSidebar() {
-    const { applyFilters, filters, activeLayout } = useDashboardStore(state => ({
+    const { 
+        applyFilters, 
+        filters, 
+        activeLayout,
+        siteOptions,
+        visitOptions,
+        formOptions,
+        fieldOptions,
+        lovOptions,
+        fetchFilterOptions
+    } = useDashboardStore(state => ({
         applyFilters: state.applyFilters,
         filters: state.filters,
         activeLayout: state.activeLayout,
+        siteOptions: state.siteOptions,
+        visitOptions: state.visitOptions,
+        formOptions: state.formOptions,
+        fieldOptions: state.fieldOptions,
+        lovOptions: state.lovOptions,
+        fetchFilterOptions: state.fetchFilterOptions
     }));
 
     const [selectedSites, setSelectedSites] = useState<string[]>(filters.sites);
@@ -76,6 +62,10 @@ export function AppSidebar() {
     const [selectedLovs, setSelectedLovs] = useState<string[]>(filters.lovs);
     const [selectedOperations, setSelectedOperations] = useState<string[]>(filters.operations);
 
+    useEffect(() => {
+        fetchFilterOptions();
+    }, [fetchFilterOptions]);
+    
     useEffect(() => {
         if (activeLayout) {
             setSelectedOperations(activeLayout.statistical.operations || []);

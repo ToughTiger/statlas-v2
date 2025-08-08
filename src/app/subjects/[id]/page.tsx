@@ -8,6 +8,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { ArrowLeft, User, HeartPulse, TestTube, Pill } from 'lucide-react';
 import { CartesianGrid, Line, LineChart, XAxis, YAxis, Tooltip } from 'recharts';
 import { Skeleton } from '@/components/ui/skeleton';
+import { getSubjectDetails } from '@/lib/api';
 
 export default function SubjectDetailPage({ params }: { params: { id: string } }) {
   const subjectId = params.id;
@@ -21,12 +22,11 @@ export default function SubjectDetailPage({ params }: { params: { id: string } }
         setLoading(true);
         setError(null);
         try {
-          const response = await fetch(`/api/subjects?id=${subjectId}`);
-          if (!response.ok) {
-            throw new Error('Subject not found');
+          const response = await getSubjectDetails(subjectId);
+           if (!response.success) {
+            throw new Error(response.message || 'Subject not found');
           }
-          const data = await response.json();
-          setSubjectData(data);
+          setSubjectData(response.data);
         } catch (err: any) {
           console.error("Failed to fetch subject data:", err);
           setError(err.message || "An unexpected error occurred.");
@@ -80,6 +80,8 @@ export default function SubjectDetailPage({ params }: { params: { id: string } }
     return null; // Should not happen if not loading and no error, but good practice
   }
 
+  const { subject_details, vitals_history, labs_history } = subjectData;
+
   return (
     <main className="flex flex-1 flex-col gap-4 p-4 md:gap-8 md:p-8">
       <div className="flex items-center gap-4">
@@ -103,10 +105,10 @@ export default function SubjectDetailPage({ params }: { params: { id: string } }
           </CardHeader>
           <CardContent>
             <div className="text-sm text-muted-foreground">
-              <p><strong>Age:</strong> {subjectData.demographics.age}</p>
-              <p><strong>Gender:</strong> {subjectData.demographics.gender}</p>
-              <p><strong>Race:</strong> {subjectData.demographics.race}</p>
-              <p><strong>Ethnicity:</strong> {subjectData.demographics.ethnicity}</p>
+              <p><strong>Age:</strong> {subject_details.age}</p>
+              <p><strong>Gender:</strong> {subject_details.gender}</p>
+              <p><strong>Race:</strong> {subject_details.race}</p>
+              <p><strong>Ethnicity:</strong> {subject_details.ethnicity}</p>
             </div>
           </CardContent>
         </Card>
@@ -117,10 +119,10 @@ export default function SubjectDetailPage({ params }: { params: { id: string } }
           </CardHeader>
           <CardContent>
              <div className="text-sm text-muted-foreground">
-              <p><strong>Heart Rate:</strong> {subjectData.vitals.current.heartRate}</p>
-              <p><strong>Blood Pressure:</strong> {subjectData.vitals.current.bloodPressure}</p>
-              <p><strong>Temperature:</strong> {subjectData.vitals.current.temperature}</p>
-              <p><strong>Resp. Rate:</strong> {subjectData.vitals.current.respiratoryRate}</p>
+              <p><strong>Heart Rate:</strong> {subject_details.heart_rate}</p>
+              <p><strong>Blood Pressure:</strong> {subject_details.blood_pressure}</p>
+              <p><strong>Temperature:</strong> {subject_details.temperature}</p>
+              <p><strong>Resp. Rate:</strong> {subject_details.respiratory_rate}</p>
             </div>
           </CardContent>
         </Card>
@@ -131,10 +133,10 @@ export default function SubjectDetailPage({ params }: { params: { id: string } }
           </CardHeader>
           <CardContent>
              <div className="text-sm text-muted-foreground">
-              <p><strong>WBC:</strong> {subjectData.labs.current.wbc}</p>
-              <p><strong>RBC:</strong> {subjectData.labs.current.rbc}</p>
-              <p><strong>Hemoglobin:</strong> {subjectData.labs.current.hemoglobin}</p>
-              <p><strong>Glucose:</strong> {subjectData.labs.current.glucose}</p>
+              <p><strong>WBC:</strong> {subject_details.wbc}</p>
+              <p><strong>RBC:</strong> {subject_details.rbc}</p>
+              <p><strong>Hemoglobin:</strong> {subject_details.hemoglobin}</p>
+              <p><strong>Glucose:</strong> {subject_details.glucose}</p>
             </div>
           </CardContent>
         </Card>
@@ -145,10 +147,10 @@ export default function SubjectDetailPage({ params }: { params: { id: string } }
           </CardHeader>
           <CardContent>
              <div className="text-sm text-muted-foreground">
-              <p><strong>Arm:</strong> {subjectData.treatment.arm}</p>
-              <p><strong>Dosage:</strong> {subjectData.treatment.dosage}</p>
-              <p><strong>Start Date:</strong> {subjectData.treatment.startDate}</p>
-              <p><strong>Status:</strong> {subjectData.treatment.status}</p>
+              <p><strong>Arm:</strong> {subject_details.arm}</p>
+              <p><strong>Dosage:</strong> {subject_details.dosage}</p>
+              <p><strong>Start Date:</strong> {subject_details.start_date}</p>
+              <p><strong>Status:</strong> {subject_details.status}</p>
             </div>
           </CardContent>
         </Card>
@@ -160,14 +162,14 @@ export default function SubjectDetailPage({ params }: { params: { id: string } }
                     <CardTitle className="text-secondary">Vitals Over Time</CardTitle>
                 </CardHeader>
                 <CardContent>
-                    <LineChart height={300} data={subjectData.vitals.history}>
+                    <LineChart height={300} data={vitals_history}>
                         <CartesianGrid strokeDasharray="3 3" />
                         <XAxis dataKey="visit" />
                         <YAxis yAxisId="left" />
                         <YAxis yAxisId="right" orientation="right" />
                         <Tooltip />
-                        <Line yAxisId="left" type="monotone" dataKey="heartRate" stroke="hsl(var(--chart-1))" name="Heart Rate" />
-                        <Line yAxisId="right" type="monotone" dataKey="bloodPressure" stroke="hsl(var(--chart-2))" name="Blood Pressure (Systolic)" />
+                        <Line yAxisId="left" type="monotone" dataKey="heart_rate" stroke="hsl(var(--chart-1))" name="Heart Rate" />
+                        <Line yAxisId="right" type="monotone" dataKey="blood_pressure" stroke="hsl(var(--chart-2))" name="Blood Pressure (Systolic)" />
                     </LineChart>
                 </CardContent>
             </Card>
@@ -176,7 +178,7 @@ export default function SubjectDetailPage({ params }: { params: { id: string } }
                     <CardTitle className="text-secondary">Lab Results Over Time</CardTitle>
                 </CardHeader>
                 <CardContent>
-                    <LineChart height={300} data={subjectData.labs.history}>
+                    <LineChart height={300} data={labs_history}>
                         <CartesianGrid strokeDasharray="3 3" />
                         <XAxis dataKey="visit" />
                         <YAxis yAxisId="left" />

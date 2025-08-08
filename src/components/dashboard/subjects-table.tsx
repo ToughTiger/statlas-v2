@@ -26,50 +26,38 @@ import {
   TableRow,
 } from "@/components/ui/table"
 import { Skeleton } from "../ui/skeleton";
-
-type Subject = {
-  id: string;
-  status: string;
-  age: number;
-  gender: string;
-  arm: string;
-};
+import { useDashboardStore } from "@/store/dashboard-store";
+import type { Subject } from "@/types";
 
 export function SubjectsTable() {
-  const [subjects, setSubjects] = useState<Subject[]>([]);
-  const [loading, setLoading] = useState(true);
   const router = useRouter();
-  
+  const { subjects, isLoadingSubjects, fetchSubjects, filters } = useDashboardStore(state => ({
+    subjects: state.subjects,
+    isLoadingSubjects: state.isLoadingSubjects,
+    fetchSubjects: state.fetchSubjects,
+    filters: state.filters
+  }));
+
   useEffect(() => {
-    const fetchSubjects = async () => {
-      try {
-        const response = await fetch('/api/subjects');
-        const data = await response.json();
-        setSubjects(data);
-      } catch (error) {
-        console.error("Failed to fetch subjects:", error);
-      } finally {
-        setLoading(false);
-      }
-    };
     fetchSubjects();
-  }, []);
+  }, [fetchSubjects, filters.sites]);
 
   const handleExport = () => {
-    const csv = Papa.unparse(subjects);
-    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
-    const link = document.createElement("a");
-    if (link.download !== undefined) {
-      const url = URL.createObjectURL(blob);
-      link.setAttribute("href", url);
-      link.setAttribute("download", "subjects.csv");
-      link.style.visibility = 'hidden';
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
+    if (subjects) {
+        const csv = Papa.unparse(subjects);
+        const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+        const link = document.createElement("a");
+        if (link.download !== undefined) {
+          const url = URL.createObjectURL(blob);
+          link.setAttribute("href", url);
+          link.setAttribute("download", "subjects.csv");
+          link.style.visibility = 'hidden';
+          document.body.appendChild(link);
+          link.click();
+          document.body.removeChild(link);
+        }
     }
   };
-
 
   const getStatusVariant = (status: string) => {
     switch (status) {
@@ -88,7 +76,6 @@ export function SubjectsTable() {
     router.prefetch(`/subjects/${subjectId}`);
   };
 
-
   return (
     <Card>
       <CardHeader className="flex flex-row items-center justify-between">
@@ -98,7 +85,7 @@ export function SubjectsTable() {
             A list of all subjects in the clinical trial.
           </CardDescription>
         </div>
-        <Button onClick={handleExport} variant="outline" size="sm">
+        <Button onClick={handleExport} variant="outline" size="sm" disabled={!subjects || subjects.length === 0}>
           <Download className="mr-2 h-4 w-4" />
           Export to CSV
         </Button>
@@ -118,7 +105,7 @@ export function SubjectsTable() {
             </TableRow>
           </TableHeader>
           <TableBody>
-            {loading ? (
+            {isLoadingSubjects ? (
               Array.from({ length: 5 }).map((_, index) => (
                 <TableRow key={index}>
                   <TableCell><Skeleton className="h-4 w-[100px]" /></TableCell>
@@ -130,7 +117,7 @@ export function SubjectsTable() {
                 </TableRow>
               ))
             ) : (
-              subjects.map((subject) => (
+              subjects && subjects.map((subject) => (
                 <TableRow key={subject.id}>
                   <TableCell className="font-medium">{subject.id}</TableCell>
                   <TableCell>
@@ -155,7 +142,7 @@ export function SubjectsTable() {
       </CardContent>
       <CardFooter>
         <div className="text-xs text-muted-foreground">
-          Showing <strong>1-{loading ? '...' : subjects.length}</strong> of <strong>500</strong> subjects
+          Showing <strong>1-{isLoadingSubjects ? '...' : subjects?.length ?? 0}</strong> of <strong>{subjects?.length ?? 0}</strong> subjects
         </div>
       </CardFooter>
     </Card>
