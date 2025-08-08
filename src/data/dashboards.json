@@ -1,0 +1,45 @@
+
+[
+  {
+    "id": "custom-1753744373393",
+    "name": "Oncology Analysis",
+    "qualitative": {
+      "charts": [
+        "enrollment",
+        "gender",
+        "adverse",
+        "site"
+      ]
+    },
+    "statistical": {
+      "operations": [
+        "t-test",
+        "anova"
+      ]
+    },
+    "predictive": {
+      "type": "site-enrollment"
+    }
+  },
+  {
+    "id": "custom-1753749089042",
+    "name": "Adverse Event Focus",
+    "qualitative": {
+      "charts": [
+        "adverse",
+        "enrollment",
+        "gender",
+        "site"
+      ]
+    },
+    "statistical": {
+      "operations": [
+        "chi-squared",
+        "distribution"
+      ]
+    },
+    "predictive": {
+      "type": "adverse-event"
+    }
+  }
+]
