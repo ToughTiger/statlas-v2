@@ -20,42 +20,61 @@ import {
 } from "@/components/ui/card"
 import { Label } from "@/components/ui/label"
 import { getStudies, setStudyName } from "@/lib/api";
-import { getCurrentUser, setSelectedStudy } from "@/lib/authenticate";
+import { getCurrentUser, setSelectedStudy as setLocalStudy } from "@/lib/authenticate";
 import { Study } from "@/types";
 import { Skeleton } from "@/components/ui/skeleton";
+import { useToast } from "@/hooks/use-toast";
+import { useRouter } from "next/navigation";
 
 
 export default function StudySelectorPage() {
     const [studies, setStudies] = useState<Study[]>([]);
-    const [selectedStudy, setSelectedStudy] = useState<string | null>(null);
+    const [selectedStudy, setSelectedStudy] = useState<Study | null>(null);
     const [loading, setLoading] = useState(true);
+    const { toast } = useToast();
+    const router = useRouter();
 
     useEffect(() => {
         const fetchStudies = async () => {
             try {
                 const currentUser = getCurrentUser();
+                if (!currentUser) {
+                    toast({ variant: 'destructive', title: 'Error', description: 'You must be logged in.' });
+                    router.push('/login');
+                    return;
+                }
                 const userId = currentUser?.id;
                 const fetchedStudies = await getStudies(userId);
                 setStudies(fetchedStudies);
-            } catch (error) {
+            } catch (error: any) {
                 console.error("Failed to fetch studies", error);
+                toast({ variant: 'destructive', title: 'Error', description: error.message || 'Failed to fetch studies.' });
             } finally {
                 setLoading(false);
             }
         };
         fetchStudies();
-    }, []);
+    }, [toast, router]);
 
     const handleProceed = async () => {
         if (selectedStudy) {
             try {
-                await setStudyName(selectedStudy);
-                setSelectedStudy(selectedStudy);
-            } catch (error) {
+                // This sets the DB context on the backend
+                await setStudyName(selectedStudy.name); 
+                // This saves the selection in localStorage for the client
+                setLocalStudy(selectedStudy.id);
+                router.push('/dashboard');
+            } catch (error: any) {
                  console.error("Failed to set study name", error);
+                 toast({ variant: 'destructive', title: 'Error', description: error.message || 'Failed to select study.' });
             }
         }
     }
+    
+    const handleValueChange = (studyId: string) => {
+        const study = studies.find(s => s.id === studyId);
+        setSelectedStudy(study || null);
+    };
 
     return (
         <div className="flex items-center justify-center min-h-screen bg-background">
@@ -73,13 +92,13 @@ export default function StudySelectorPage() {
                             {loading ? (
                                 <Skeleton className="h-10 w-full" />
                             ) : (
-                                <Select onValueChange={setSelectedStudy} disabled={studies.length === 0}>
+                                <Select onValueChange={handleValueChange} disabled={studies.length === 0}>
                                     <SelectTrigger id="study">
                                         <SelectValue placeholder={studies.length > 0 ? "Select a study" : "No studies available"} />
                                     </SelectTrigger>
                                     <SelectContent>
                                         {studies.map(study => (
-                                            <SelectItem key={study.id} value={study.name}>
+                                            <SelectItem key={study.id} value={study.id}>
                                                 {study.name}
                                             </SelectItem>
                                         ))}
@@ -87,8 +106,8 @@ export default function StudySelectorPage() {
                                 </Select>
                             )}
                         </div>
-                        <Button asChild className="w-full" onClick={handleProceed} disabled={!selectedStudy}>
-                           <Link href="/dashboard">Proceed to Dashboard</Link>
+                        <Button onClick={handleProceed} className="w-full" disabled={!selectedStudy || loading}>
+                           Proceed to Dashboard
                         </Button>
                     </div>
                 </CardContent>

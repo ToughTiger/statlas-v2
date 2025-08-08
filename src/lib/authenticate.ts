@@ -45,7 +45,8 @@ export async function login(username: string, password: string): Promise<User | 
   });
 
   if (!response.ok) {
-    throw new Error('Login failed');
+    const errorText = await response.text();
+    throw new Error(errorText || 'Login failed');
   }
 
   const { access_token } = await response.json();
@@ -82,9 +83,10 @@ export function logout(): void {
 }
 
 export async function database(databaseName: string): Promise<ApiResponse<DatabaseName>> {
-  return fetchWithAuth(`${API_BASE_URL}/dbname/${databaseName}`, {
+  const response = await fetchWithAuth(`${API_BASE_URL}/dbname/${databaseName}`, {
     method: 'POST',
   });
+  return response;
 }
 
 export function getCurrentUser(): User | null {

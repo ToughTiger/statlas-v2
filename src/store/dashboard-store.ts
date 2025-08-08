@@ -9,7 +9,7 @@ import AdverseEventsChart from '@/components/dashboard/charts/adverse-events-cha
 import SitePerformanceChart from '@/components/dashboard/charts/site-performance-chart';
 import type { PredictionInput } from '@/ai/flows/predictive-analysis-flow';
 import { getAllSites, getSubjects } from '@/lib/api';
-import type { Subject, Site, Visit, Form, Field, LovValue } from '@/types';
+import type { Subject } from '@/types';
 
 
 const allCharts = [
@@ -134,6 +134,7 @@ export const useDashboardStore = create<DashboardState>((set, get) => ({
     set({ isLoading: true });
     try {
       const response = await fetch('/api/dashboards');
+      if (!response.ok) throw new Error('Failed to fetch layouts');
       const data = await response.json();
       const mappedData: DashboardLayout[] = data.map((layout: any) => ({
         id: layout.id,
@@ -342,13 +343,9 @@ export const useDashboardStore = create<DashboardState>((set, get) => ({
     set({ isLoadingSubjects: true });
     try {
       const { filters } = get();
-      const siteIds = filters.sites.length > 0 ? filters.sites.join(',') : null;
-      const response = await getSubjects(siteIds);
-      if (response.success) {
-        set({ subjects: response.data, isLoadingSubjects: false });
-      } else {
-        throw new Error(response.message || 'Failed to fetch subjects');
-      }
+      const siteIds = filters.sites.length > 0 ? filters.sites : null;
+      const subjectData = await getSubjects(siteIds);
+      set({ subjects: subjectData, isLoadingSubjects: false });
     } catch (error) {
       console.error("Failed to fetch subjects:", error);
       set({ subjects: [], isLoadingSubjects: false });
@@ -357,11 +354,9 @@ export const useDashboardStore = create<DashboardState>((set, get) => ({
   
   fetchFilterOptions: async () => {
     try {
-        const sitesRes = await getAllSites();
-        if (sitesRes.success) {
-            const siteOptions = sitesRes.data.map(site => ({ label: site.name, value: site.id }));
-            set({ siteOptions });
-        }
+        const sites = await getAllSites();
+        const siteOptions = sites.map(site => ({ label: site.name, value: site.id }));
+        set({ siteOptions });
         // In a real app, you would fetch other filter options too
         // For now, we'll keep them as static placeholders
     } catch (error) {

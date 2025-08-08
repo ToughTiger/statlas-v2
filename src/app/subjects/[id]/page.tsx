@@ -9,10 +9,11 @@ import { ArrowLeft, User, HeartPulse, TestTube, Pill } from 'lucide-react';
 import { CartesianGrid, Line, LineChart, XAxis, YAxis, Tooltip } from 'recharts';
 import { Skeleton } from '@/components/ui/skeleton';
 import { getSubjectDetails } from '@/lib/api';
+import { SubjectDetailsData, ApiResponse } from '@/types';
 
 export default function SubjectDetailPage({ params }: { params: { id: string } }) {
   const subjectId = params.id;
-  const [subjectData, setSubjectData] = useState<any>(null);
+  const [subjectData, setSubjectData] = useState<SubjectDetailsData | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -22,7 +23,7 @@ export default function SubjectDetailPage({ params }: { params: { id: string } }
         setLoading(true);
         setError(null);
         try {
-          const response = await getSubjectDetails(subjectId);
+          const response: ApiResponse<SubjectDetailsData> = await getSubjectDetails(subjectId);
            if (!response.success) {
             throw new Error(response.message || 'Subject not found');
           }
@@ -67,6 +68,7 @@ export default function SubjectDetailPage({ params }: { params: { id: string } }
                 <CardTitle className="text-2xl text-destructive">Subject Not Found</CardTitle>
                 <CardContent className="mt-4">
                     <p>The subject with ID "{subjectId}" could not be found.</p>
+                     <p className="text-sm text-muted-foreground">{error}</p>
                     <Button asChild className="mt-4">
                         <Link href="/dashboard">Back to Dashboard</Link>
                     </Button>

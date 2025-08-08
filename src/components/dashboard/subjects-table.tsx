@@ -4,7 +4,7 @@
 import Link from "next/link"
 import { useRouter } from "next/navigation";
 import { ArrowRight, Download } from "lucide-react"
-import { useEffect, useState } from "react";
+import { useEffect } from "react";
 import Papa from "papaparse";
 
 import { Badge } from "@/components/ui/badge"
@@ -27,7 +27,6 @@ import {
 } from "@/components/ui/table"
 import { Skeleton } from "../ui/skeleton";
 import { useDashboardStore } from "@/store/dashboard-store";
-import type { Subject } from "@/types";
 
 export function SubjectsTable() {
   const router = useRouter();
@@ -142,7 +141,7 @@ export function SubjectsTable() {
       </CardContent>
       <CardFooter>
         <div className="text-xs text-muted-foreground">
-          Showing <strong>1-{isLoadingSubjects ? '...' : subjects?.length ?? 0}</strong> of <strong>{subjects?.length ?? 0}</strong> subjects
+          Showing <strong>1-{isLoadingSubjects ? '...' : subjects?.length ?? 0}</strong> of <strong>{isLoadingSubjects ? '...' : subjects?.length ?? 0}</strong> subjects
         </div>
       </CardFooter>
     </Card>
