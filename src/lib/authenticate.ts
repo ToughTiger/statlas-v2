@@ -1,53 +1,115 @@
+'use client';
 
-'use client'; // This file can be used in client components
+import { User, DatabaseName, ApiResponse } from '@/types';
+import { decodeJwt } from '@/app/utils/jwt';
+
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:8000/api';
+const AUTH_TOKEN_KEY = 'JWT_TOKEN'; // Key for storing JWT token in localStorage
+const SELECTED_STUDY_KEY = 'Selected Study'; // Key for storing selected study in localStorage
+const CURRENT_USER_KEY = 'Current User'; // Key for storing current user in localStorage
 
 export async function fetchWithAuth(url: string, options: RequestInit = {}) {
-    const token = localStorage.getItem('jwt_token');
+  const token = localStorage.getItem(AUTH_TOKEN_KEY);
 
-    const headers = new Headers(options.headers || {});
-    if (token) {
-        headers.append('Authorization', `Bearer ${token}`);
-    }
-    
-    // Ensure credentials are included for cross-origin requests if needed
-    const newOptions: RequestInit = {
-        ...options,
-        headers,
-        credentials: 'include' 
-    };
+  const headers = new Headers(options.headers || {});
+  if (token) {
+    headers.append('Authorization', `Bearer ${token}`);
+  }
 
-    try {
-        const response = await fetch(url, newOptions);
-        const data = await response.json();
+  const response = await fetch(url, {
+    ...options,
+    headers,
+    credentials: 'include',
+  });
 
-        if (!response.ok) {
-            // Throw an error with the message from the API if available
-            throw new Error(data.message || `HTTP error! status: ${response.status}`);
-        }
-        
-        return data; // The API response should have a standard structure { success, data, message }
-    } catch (error) {
-        console.error('Fetch error:', error);
-        // You might want to re-throw the error or handle it in a specific way
-        throw error;
-    }
+  if (!response.ok) {
+    const errorData = await response.json().catch(() => ({ message: response.statusText }));
+    throw new Error(errorData.message || `API request failed: ${response.statusText}`);
+  }
+
+  return response.json();
 }
 
-// Example of how you might log in and get a token
-export async function login(credentials: any) {
-    // const response = await fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL}/login`, {
-    //     method: 'POST',
-    //     headers: { 'Content-Type': 'application/json' },
-    //     body: JSON.stringify(credentials)
-    // });
-    // const data = await response.json();
-    // if (data.token) {
-    //     localStorage.setItem('jwt_token', data.token);
-    // }
-    // For now, let's use a dummy token
-    localStorage.setItem('jwt_token', 'your-dummy-jwt-token');
+export async function login(username: string, password: string): Promise<User | null> {
+  const formData = new URLSearchParams();
+  formData.append('username', username);
+  formData.append('password', password);
+  formData.append('grant_type', 'password');
+
+  const response = await fetch(`${API_BASE_URL}/login`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/x-www-form-urlencoded',
+    },
+    body: formData,
+  });
+
+  if (!response.ok) {
+    throw new Error('Login failed');
+  }
+
+  const { access_token } = await response.json();
+  if (!access_token) {
+    console.error("Login failed: No access token received");
+    return null;
+  }
+
+  const decodedUser = decodeJwt(access_token);
+  const user = {
+    id: decodedUser?.userid?.toString() || '',
+    username: decodedUser?.username || '',
+    name: `${decodedUser?.first_name || ''} ${decodedUser?.last_name || ''}`,
+    email: decodedUser?.EmailId || '',
+    firstName: decodedUser?.first_name || '',
+    lastName: decodedUser?.last_name || '',
+  };
+
+  if (typeof window !== 'undefined') {
+    localStorage.setItem(AUTH_TOKEN_KEY, access_token);
+    localStorage.setItem(CURRENT_USER_KEY, JSON.stringify(user));
+  }
+
+  return user;
 }
 
-export function logout() {
-    localStorage.removeItem('jwt_token');
+export function logout(): void {
+  if (typeof window !== 'undefined') {
+    localStorage.removeItem(AUTH_TOKEN_KEY);
+    localStorage.removeItem(SELECTED_STUDY_KEY);
+    localStorage.removeItem(CURRENT_USER_KEY);
+    window.location.href = '/login';
+  }
+}
+
+export async function database(databaseName: string): Promise<ApiResponse<DatabaseName>> {
+  return fetchWithAuth(`${API_BASE_URL}/dbname/${databaseName}`, {
+    method: 'POST',
+  });
+}
+
+export function getCurrentUser(): User | null {
+  if (typeof window === 'undefined') return null;
+  const userStr = localStorage.getItem(CURRENT_USER_KEY);
+  try {
+    return userStr ? JSON.parse(userStr) : null;
+  } catch (e) {
+    console.error("Error parsing current user from localStorage", e);
+    return null;
+  }
+}
+
+export function setSelectedStudy(studyId: string): void {
+  if (typeof window !== 'undefined') {
+    localStorage.setItem(SELECTED_STUDY_KEY, studyId);
+  }
+}
+
+export function getSelectedStudy(): string | null {
+  if (typeof window === 'undefined') return null;
+  return localStorage.getItem(SELECTED_STUDY_KEY);
+}
+
+export function isAuthenticated(): boolean {
+  if (typeof window === 'undefined') return false;
+  return !!localStorage.getItem(AUTH_TOKEN_KEY);
 }

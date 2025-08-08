@@ -20,6 +20,7 @@ import {
 } from "@/components/ui/card"
 import { Label } from "@/components/ui/label"
 import { getStudies, setStudyName } from "@/lib/api";
+import { getCurrentUser, setSelectedStudy } from "@/lib/authenticate";
 import { Study } from "@/types";
 import { Skeleton } from "@/components/ui/skeleton";
 
@@ -32,8 +33,8 @@ export default function StudySelectorPage() {
     useEffect(() => {
         const fetchStudies = async () => {
             try {
-                // In a real app, you'd get the userId from an auth context
-                const userId = 'user123'; 
+                const currentUser = getCurrentUser();
+                const userId = currentUser?.id;
                 const fetchedStudies = await getStudies(userId);
                 setStudies(fetchedStudies);
             } catch (error) {
@@ -49,6 +50,7 @@ export default function StudySelectorPage() {
         if (selectedStudy) {
             try {
                 await setStudyName(selectedStudy);
+                setSelectedStudy(selectedStudy);
             } catch (error) {
                  console.error("Failed to set study name", error);
             }

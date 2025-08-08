@@ -1,8 +1,10 @@
 
 "use client";
 
+import React, { useState } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
+import { useRouter } from 'next/navigation';
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -13,8 +15,39 @@ import {
 } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { useToast } from '@/hooks/use-toast';
+import { login } from '@/lib/authenticate';
+import { Loader2 } from 'lucide-react';
 
 export default function LoginPage() {
+  const router = useRouter();
+  const { toast } = useToast();
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [isLoading, setIsLoading] = useState(false);
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setIsLoading(true);
+    try {
+      const user = await login(email, password);
+      if (user) {
+        toast({ title: "Login Successful", description: `Welcome back, ${user.name}` });
+        router.push('/study-selector');
+      } else {
+        throw new Error("Login failed: User not returned");
+      }
+    } catch (error: any) {
+      toast({
+        variant: "destructive",
+        title: "Login Failed",
+        description: error.message || "An unexpected error occurred.",
+      });
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
   return (
     <div className="w-full lg:grid lg:min-h-screen lg:grid-cols-2">
       <div className="hidden bg-muted lg:flex lg:flex-col items-center justify-center p-8 text-center">
@@ -43,29 +76,41 @@ export default function LoginPage() {
                     </CardDescription>
                 </CardHeader>
                 <CardContent>
+                  <form onSubmit={handleSubmit}>
                     <div className="grid gap-4">
-                    <div className="grid gap-2">
-                        <Label htmlFor="email">Email</Label>
-                        <Input
-                        id="email"
-                        type="email"
-                        placeholder="m@example.com"
-                        required
-                        />
+                      <div className="grid gap-2">
+                          <Label htmlFor="email">Email</Label>
+                          <Input
+                          id="email"
+                          type="email"
+                          placeholder="m@example.com"
+                          required
+                          value={email}
+                          onChange={(e) => setEmail(e.target.value)}
+                          disabled={isLoading}
+                          />
+                      </div>
+                      <div className="grid gap-2">
+                          <div className="flex items-center">
+                          <Label htmlFor="password">Password</Label>
+                          <Link href="#" className="ml-auto inline-block text-sm underline">
+                              Forgot your password?
+                          </Link>
+                          </div>
+                          <Input 
+                            id="password" 
+                            type="password" 
+                            required 
+                            value={password}
+                            onChange={(e) => setPassword(e.target.value)}
+                            disabled={isLoading}
+                          />
+                      </div>
+                      <Button type="submit" className="w-full" disabled={isLoading}>
+                        {isLoading ? <Loader2 className="animate-spin" /> : 'Login'}
+                      </Button>
                     </div>
-                    <div className="grid gap-2">
-                        <div className="flex items-center">
-                        <Label htmlFor="password">Password</Label>
-                        <Link href="#" className="ml-auto inline-block text-sm underline">
-                            Forgot your password?
-                        </Link>
-                        </div>
-                        <Input id="password" type="password" required />
-                    </div>
-                    <Button type="submit" className="w-full" asChild>
-                        <Link href="/study-selector">Login</Link>
-                    </Button>
-                    </div>
+                  </form>
                 </CardContent>
             </Card>
         </div>

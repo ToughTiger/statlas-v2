@@ -85,3 +85,17 @@ export interface SubjectDetailsData {
     vitals_history: VitalsHistory[];
     labs_history: LabsHistory[];
 }
+
+export interface User {
+    id: string;
+    username: string;
+    name: string;
+    email: string;
+    firstName: string;
+    lastName: string;
+}
+
+export interface DatabaseName {
+    // Define based on what your /dbname API returns
+    [key: string]: any;
+}

@@ -1,7 +1,7 @@
 
 'use client'; 
 
-import {fetchWithAuth} from '@/lib/authenticate'
+import {fetchWithAuth, database} from '@/lib/authenticate'
 import { 
   ApiResponse,
   Site,
@@ -30,9 +30,10 @@ export async function  getStudies(userId: string|undefined): Promise<Study[]> {
 }
 
 export async function setStudyName(studyName: string |null) {
-    const response = await fetchWithAuth(`${API_BASE_URL}/dbname/${studyName}`, {
-        method: 'POST',
-    });
+    if (!studyName) {
+        throw new Error("Study name cannot be null.");
+    }
+    const response = await database(studyName);
     return response.data;
 }
 
