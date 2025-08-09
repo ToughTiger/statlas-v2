@@ -2,10 +2,13 @@
 "use client"
 
 import React, { useState } from 'react';
+import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import {
   Bell,
   Download,
   Save,
+  LogOut,
 } from "lucide-react"
 import html2canvas from "html2canvas";
 import jsPDF from "jspdf";
@@ -31,9 +34,11 @@ import { SidebarTrigger } from "../ui/sidebar"
 import { SaveDashboardDialog } from "./save-dashboard-dialog";
 import { Skeleton } from "../ui/skeleton";
 import { useDashboardStore } from '@/store/dashboard-store-provider';
+import { logout } from '@/lib/authenticate';
 
 
 export function Header() {
+  const router = useRouter();
   const [isSaveDialogOpen, setIsSaveDialogOpen] = useState(false);
   const { layouts, activeLayout, selectLayout, saveLayout, isLoading } = useDashboardStore((state) => ({
     layouts: state.layouts,
@@ -69,6 +74,10 @@ export function Header() {
     }
   }
 
+  const handleLogout = async () => {
+    await logout();
+    router.push('/login');
+  };
 
   return (
     <>
@@ -136,7 +145,10 @@ export function Header() {
             <DropdownMenuItem>Settings</DropdownMenuItem>
             <DropdownMenuItem>Support</DropdownMenuItem>
             <DropdownMenuSeparator />
-            <DropdownMenuItem>Logout</DropdownMenuItem>
+            <DropdownMenuItem onClick={handleLogout}>
+              <LogOut className="mr-2 h-4 w-4" />
+              <span>Logout</span>
+            </DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>
       </div>

@@ -7,30 +7,28 @@ import { CartesianGrid, Line, LineChart, XAxis, YAxis, Tooltip, ResponsiveContai
 import { getSubjectDetails } from '@/lib/server-api';
 import { SubjectDetailsData, ApiResponse } from '@/types';
 
+// This is now a Server Component, so data fetching is done here directly.
 export default async function SubjectDetailPage({ params }: { params: { id: string } }) {
   const subjectId = params.id;
   
   let subjectData: SubjectDetailsData | null = null;
-  let error: string | null = null;
 
   try {
+    // We call the server-side API function to get the data
     const response: ApiResponse<SubjectDetailsData> = await getSubjectDetails(subjectId);
     if (!response.success || !response.data || !response.data.subject_details) {
-      throw new Error(response.message || 'Subject not found');
+      // If the API call is successful but there's no data, trigger a 404
+      notFound();
     }
     subjectData = response.data;
   } catch (err: any) {
     console.error("Failed to fetch subject data:", err);
-    error = err.message || "An unexpected error occurred.";
-    // This will trigger the notFound() UI, which is more appropriate for SSR
+    // If there's an API error (e.g., server down), we can also trigger a 404
+    // or show a custom error page. notFound() is often sufficient.
     notFound();
   }
 
-  if (!subjectData) {
-    // If there's no data and no error, it implies a notFound case.
-    notFound();
-  }
-
+  // Destructure the data after we're sure it exists.
   const { subject_details, vitals_history, labs_history } = subjectData;
   const demographics = subject_details;
 
@@ -71,10 +69,10 @@ export default async function SubjectDetailPage({ params }: { params: { id: stri
           </CardHeader>
           <CardContent>
              <div className="text-sm text-muted-foreground">
-              <p><strong>Heart Rate:</strong> {demographics.heart_rate ?? 'N/A'}</p>
-              <p><strong>Blood Pressure:</strong> {demographics.blood_pressure ?? 'N/A'}</p>
-              <p><strong>Temperature:</strong> {demographics.temperature ?? 'N/A'}</p>
-              <p><strong>Resp. Rate:</strong> {demographics.respiratory_rate ?? 'N/A'}</p>
+              <p><strong>Heart Rate:</strong> {demographics.heart_rate ?? 'N/A'} bpm</p>
+              <p><strong>Blood Pressure:</strong> {demographics.blood_pressure ?? 'N/A'} mmHg</p>
+              <p><strong>Temperature:</strong> {demographics.temperature ?? 'N/A'} °F</p>
+              <p><strong>Resp. Rate:</strong> {demographics.respiratory_rate ?? 'N/A'} bpm</p>
             </div>
           </CardContent>
         </Card>
@@ -85,10 +83,10 @@ export default async function SubjectDetailPage({ params }: { params: { id: stri
           </CardHeader>
           <CardContent>
              <div className="text-sm text-muted-foreground">
-              <p><strong>WBC:</strong> {demographics.wbc ?? 'N/A'}</p>
-              <p><strong>RBC:</strong> {demographics.rbc ?? 'N/A'}</p>
-              <p><strong>Hemoglobin:</strong> {demographics.hemoglobin ?? 'N/A'}</p>
-              <p><strong>Glucose:</strong> {demographics.glucose ?? 'N/A'}</p>
+              <p><strong>WBC:</strong> {demographics.wbc ?? 'N/A'} 10³/µL</p>
+              <p><strong>RBC:</strong> {demographics.rbc ?? 'N/A'} 10⁶/µL</p>
+              <p><strong>Hemoglobin:</strong> {demographics.hemoglobin ?? 'N/A'} g/dL</p>
+              <p><strong>Glucose:</strong> {demographics.glucose ?? 'N/A'} mg/dL</p>
             </div>
           </CardContent>
         </Card>
@@ -147,7 +145,7 @@ export default async function SubjectDetailPage({ params }: { params: { id: stri
             </Card>
        </div>
 
-       <div className="flex justify-start">
+       <div className="flex justify-start mt-4">
         <Button asChild variant="default">
           <Link href="/dashboard">Back to Dashboard</Link>
         </Button>

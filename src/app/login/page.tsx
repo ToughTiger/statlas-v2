@@ -50,7 +50,7 @@ export default function LoginPage() {
       if (success) {
         toast({ title: "Login Successful", description: "Welcome back!" });
         router.push('/study-selector');
-        router.refresh(); // Force a refresh to update server-side auth state
+        // No need to refresh here, the redirect will load the new server-side state
       } else {
         setError("Invalid username or password.");
       }
@@ -61,7 +61,7 @@ export default function LoginPage() {
     }
   };
   
-  // If loading, show a full-screen spinner
+  // If we're still checking auth status, show a full-screen spinner
   if (isLoading) {
       return (
           <div className="flex h-screen w-full items-center justify-center">
@@ -74,7 +74,7 @@ export default function LoginPage() {
     <div className="w-full lg:grid lg:min-h-screen lg:grid-cols-2">
       <div className="hidden bg-muted lg:flex lg:flex-col items-center justify-center p-8 text-center">
         <Image
-            src="/logo.png"
+            src="https://placehold.co/200x100.png"
             alt="eRIC Solutions Logo"
             width="200"
             height="100"

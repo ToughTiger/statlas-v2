@@ -1,5 +1,4 @@
 import { createStore } from 'zustand';
-import { useToast } from '@/hooks/use-toast';
 import { getDashboardInsight } from '@/ai/flows/dashboard-insights-flow';
 import { getPrediction } from '@/ai/flows/predictive-analysis-flow';
 import EnrollmentChart from '@/components/dashboard/charts/enrollment-chart';
@@ -73,14 +72,14 @@ export interface DashboardState {
   // Actions
   fetchLayouts: () => Promise<void>;
   selectLayout: (layoutId: string) => void;
-  saveLayout: (name: string) => Promise<void>;
+  saveLayout: (name: string, showToast: (options: any) => void) => Promise<void>;
   setChartLayout: (charts: any[]) => void;
   setActiveTab: (tab: string) => void;
   applyFilters: (newFilters: Filters) => void;
   fetchQualitativeCharts: () => Promise<void>;
   fetchStatisticalCharts: () => Promise<void>;
-  generateInsight: (chartId: string, chartTitle: string, chartData: any) => Promise<void>;
-  generatePrediction: (input: PredictionInput) => Promise<void>;
+  generateInsight: (chartId: string, chartTitle: string, chartData: any, showToast: (options: any) => void) => Promise<void>;
+  generatePrediction: (input: PredictionInput, showToast: (options: any) => void) => Promise<void>;
   openModal: () => void;
   closeModal: () => void;
   setPredictionType: (type: string) => void;
@@ -132,7 +131,6 @@ export const createDashboardStore = () => createStore<DashboardState>((set, get)
   fetchLayouts: async () => {
     set({ isLoading: true });
     try {
-      // Using a client-side API route for this
       const response = await fetch('/api/dashboards');
       if (!response.ok) throw new Error('Failed to fetch layouts');
       const data = await response.json();
@@ -148,7 +146,7 @@ export const createDashboardStore = () => createStore<DashboardState>((set, get)
       set({ layouts: mappedData, activeLayout: createDefaultLayout() });
     } catch (error) {
       console.error("Failed to fetch dashboard layouts:", error);
-       useToast().toast({ variant: "destructive", title: "Error", description: "Failed to load dashboard layouts."});
+       // We'll let the component show the toast
        set({ activeLayout: createDefaultLayout() });
     } finally {
       set({ isLoading: false });
@@ -175,7 +173,7 @@ export const createDashboardStore = () => createStore<DashboardState>((set, get)
     }
   },
 
-  saveLayout: async (name: string) => {
+  saveLayout: async (name: string, showToast: (options: any) => void) => {
     const { activeLayout, filters, predictionType } = get();
     if (!activeLayout) return;
 
@@ -218,9 +216,10 @@ export const createDashboardStore = () => createStore<DashboardState>((set, get)
       if (newActiveLayout) {
         set({ activeLayout: newActiveLayout });
       }
+      showToast({ variant: "default", title: "Success", description: "Dashboard layout saved."});
     } catch (error: any) {
       console.error("Failed to save dashboard layout:", error);
-      useToast().toast({ variant: "destructive", title: "Error Saving Layout", description: error.message });
+      showToast({ variant: "destructive", title: "Error Saving Layout", description: error.message });
     }
   },
 
@@ -245,7 +244,7 @@ export const createDashboardStore = () => createStore<DashboardState>((set, get)
     get().fetchSubjects();
     setTimeout(() => {
         set({ isFetchingNewData: false, activeTab: "statistical" });
-    }, 1500); // Simulate fetch
+    }, 1500);
   },
   
   fetchQualitativeCharts: async () => {
@@ -286,9 +285,9 @@ export const createDashboardStore = () => createStore<DashboardState>((set, get)
     }
   },
 
-  generateInsight: async (chartId: string, chartTitle: string, chartData: any) => {
+  generateInsight: async (chartId: string, chartTitle: string, chartData: any, showToast: (options: any) => void) => {
     if (!chartData) {
-        useToast().toast({
+        showToast({
             variant: "destructive",
             title: "Error",
             description: "Chart data is not available for insight generation.",
@@ -308,7 +307,7 @@ export const createDashboardStore = () => createStore<DashboardState>((set, get)
         const description = error.message.includes("GEMINI_API_KEY")
             ? "Your GEMINI_API_KEY is not configured. Please add it to your .env file."
             : "Could not generate AI insight. Please try again later.";
-        useToast().toast({
+        showToast({
             variant: "destructive",
             title: "Error",
             description: description,
@@ -319,7 +318,7 @@ export const createDashboardStore = () => createStore<DashboardState>((set, get)
     }
   },
   
-  generatePrediction: async (input: PredictionInput) => {
+  generatePrediction: async (input: PredictionInput, showToast: (options: any) => void) => {
     set({ isLoadingPrediction: true, currentPrediction: '' });
     try {
         const result = await getPrediction(input);
@@ -329,7 +328,7 @@ export const createDashboardStore = () => createStore<DashboardState>((set, get)
         const description = error.message.includes("GEMINI_API_KEY")
             ? "Your GEMINI_API_KEY is not configured. Please add it to your .env file."
             : "Could not generate prediction. Please try again later.";
-        useToast().toast({
+        showToast({
             variant: "destructive",
             title: "Error",
             description: description,
@@ -344,7 +343,7 @@ export const createDashboardStore = () => createStore<DashboardState>((set, get)
     try {
       const { filters } = get();
       const siteIds = filters.sites.length > 0 ? filters.sites : null;
-      const subjectData = await getSubjects(siteIds); // This now calls the client-side API route
+      const subjectData = await getSubjects(siteIds);
       set({ subjects: subjectData, isLoadingSubjects: false });
     } catch (error) {
       console.error("Failed to fetch subjects:", error);
@@ -354,12 +353,9 @@ export const createDashboardStore = () => createStore<DashboardState>((set, get)
   
   fetchFilterOptions: async () => {
     try {
-        // This is a client-side call
         const sites = await getAllSites();
-        const siteOptions = sites.map(site => ({ label: site.name, value: site.id }));
+        const siteOptions = sites.map(site => ({ label: site.name, value: site.id.toString() }));
         set({ siteOptions });
-        // In a real app, you would fetch other filter options too
-        // For now, we'll keep them as static placeholders
     } catch (error) {
         console.error("Failed to fetch filter options:", error);
     }

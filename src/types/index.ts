@@ -46,7 +46,6 @@ export interface Site {
 
 export interface Subject { 
   id: string;
-  name: string;
   status: string;
   age: number;
   gender: string;
@@ -86,34 +85,34 @@ export interface AnalysisData {
 
 // Subject Details Page Types
 export interface SubjectDetails {
-    age: number;
-    gender: string;
-    race: string;
-    ethnicity: string;
-    heart_rate: string;
-    blood_pressure: string;
-    temperature: string;
-    respiratory_rate: string;
-    wbc: string;
-    rbc: string;
-    hemoglobin: string;
-    glucose: string;
-    arm: string;
-    dosage: string;
-    start_date: string;
-    status: string;
+    age: number | null;
+    gender: string | null;
+    race: string | null;
+    ethnicity: string | null;
+    heart_rate: string | null;
+    blood_pressure: string | null;
+    temperature: string | null;
+    respiratory_rate: string | null;
+    wbc: string | null;
+    rbc: string | null;
+    hemoglobin: string | null;
+    glucose: string | null;
+    arm: string | null;
+    dosage: string | null;
+    start_date: string | null;
+    status: string | null;
 }
 
 export interface VitalsHistory {
     visit: string;
-    heart_rate: number;
-    blood_pressure: number;
+    heart_rate: number | null;
+    blood_pressure: number | null;
 }
 
 export interface LabsHistory {
     visit: string;
-    wbc: number;
-    hemoglobin: number;
+    wbc: number | null;
+    hemoglobin: number | null;
 }
 
 export interface SubjectDetailsData {

@@ -23,6 +23,7 @@ export default async function StudySelectorPage() {
         redirect('/login');
     }
 
+    // This data is now fetched on the server
     const studies = await getStudies(user.id);
     
     // This server action will be passed to the client component.
@@ -30,14 +31,14 @@ export default async function StudySelectorPage() {
     async function selectStudyAction(studyId: string, studyName: string) {
         'use server';
         try {
+            // This server action sets the DB name and the cookies
             await setStudyNameOnServer(studyId, studyName);
         } catch (e) {
             console.error("Failed to set study in cookie", e);
-            // Handle error appropriately
+            // We can return an error to the client component
             return { success: false, message: "Failed to select study." };
         }
-        // Instead of redirecting here, we let the client do it
-        // to ensure a smooth transition.
+        // Let the client component handle the redirect on success
         return { success: true };
     }
 
