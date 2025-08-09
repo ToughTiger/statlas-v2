@@ -22,7 +22,7 @@ import {
 } from "lucide-react"
 import { MultiSelect } from "../ui/multi-select";
 import { Avatar, AvatarFallback, AvatarImage } from "../ui/avatar";
-import { useDashboardStore } from '@/store/dashboard-store';
+import { useDashboardStore } from '@/store/dashboard-store-provider';
 
 const operationOptions = [
     { label: 'T-Test', value: 't-test' },

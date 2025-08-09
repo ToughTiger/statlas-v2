@@ -1,3 +1,4 @@
+
 "use client"
 
 import React, { useState } from 'react';
@@ -29,7 +30,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { SidebarTrigger } from "../ui/sidebar"
 import { SaveDashboardDialog } from "./save-dashboard-dialog";
 import { Skeleton } from "../ui/skeleton";
-import { useDashboardStore } from '@/store/dashboard-store';
+import { useDashboardStore } from '@/store/dashboard-store-provider';
 
 
 export function Header() {

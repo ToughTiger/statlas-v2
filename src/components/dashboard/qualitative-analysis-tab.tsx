@@ -8,7 +8,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { GripVertical } from 'lucide-react';
 import GenerateInsightButton from './generate-insight-button';
 import InsightModal from './insight-modal';
-import { useDashboardStore } from '@/store/dashboard-store';
+import { useDashboardStore } from '@/store/dashboard-store-provider';
 import { TabsContent } from '../ui/tabs';
 
 

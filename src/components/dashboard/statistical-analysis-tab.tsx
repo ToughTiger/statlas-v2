@@ -10,7 +10,7 @@ import DistributionChart from './statistical-charts/distribution-chart';
 import ScatterPlotChart from './statistical-charts/scatter-plot-chart';
 import GenerateInsightButton from './generate-insight-button';
 import InsightModal from './insight-modal';
-import { useDashboardStore } from '@/store/dashboard-store';
+import { useDashboardStore } from '@/store/dashboard-store-provider';
 import { TabsContent } from '../ui/tabs';
 
 const operationFriendlyNames: { [key: string]: string } = {

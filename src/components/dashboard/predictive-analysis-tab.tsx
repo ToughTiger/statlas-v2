@@ -22,7 +22,7 @@ import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Loader, Wand2 } from "lucide-react";
-import { useDashboardStore } from '@/store/dashboard-store';
+import { useDashboardStore } from '@/store/dashboard-store-provider';
 import { TabsContent } from '../ui/tabs';
 
 const predictionTypes = [
