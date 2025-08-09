@@ -1,49 +1,26 @@
 
 'use client'; 
 
-import {fetchWithAuth, database} from '@/lib/authenticate'
+// This file contains API calls that are intended to be made from the client side.
+// They use the client-side fetchWithAuth which relies on the browser's context.
+
+import {fetchWithAuth} from '@/lib/authenticate'
 import { 
   ApiResponse,
   Site,
-  Study,
   Subject,
   Visit,
   Form,
   Field,
   LovValue,
   AnalysisData,
-  SubjectDetailsData
- 
 } from '@/types';
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:8000/api';
 
-export async function getStudies(userId: string | undefined): Promise<Study[]> {
-    if (!userId) return [];
-    const response = await fetchWithAuth(`${API_BASE_URL}/studies/${userId}`, {
-        method: 'POST',
-    });
-    if (!response?.data || !Array.isArray(response.data)) {
-        console.error('Invalid response from getStudies:', response);
-        return [];
-    }
-    // Map API response to our application's Study type
-    return response.data.map((study: any) => ({
-        id: study.study_id.toString(),
-        name: study.study_name,
-    }));
-}
-
-
-export async function setStudyName(studyName: string |null) {
-    if (!studyName) {
-        throw new Error("Study name cannot be null.");
-    }
-    const response = await database(studyName);
-    return response.data;
-}
-
 export async function getAllSites(): Promise<Site[]> {
+    // Note: This call is now done on the server in server-api.ts,
+    // but we keep it here in case it's needed on the client.
     const response = await fetchWithAuth(`${API_BASE_URL}/all_sites`,{
         method: 'GET',
     });
@@ -57,27 +34,25 @@ export async function getAllSites(): Promise<Site[]> {
     }));
 }
 
-export async function getSiteDetails(siteIds: string): Promise<Site[]> {
-    const response = await fetchWithAuth(`${API_BASE_URL}/site-details/${siteIds}`, {
-        method: 'POST',
-    });
-    return response.data;
-}
 
 export async function getSubjects(siteIds: string[] | null): Promise<Subject[]> {
     const siteIdsString = siteIds ? siteIds.join(',') : '';
-    const query = siteIdsString ? `?site_ids=${encodeURIComponent(siteIdsString)}` : '';
-    
-    const response = await fetchWithAuth(`${API_BASE_URL}/subjects${query}`,{
-      method: 'POST',
-    });
+    // This is a client-side call, so it uses a client-side route handler
+    // to protect the actual API call which needs a server-side token.
+    const response = await fetch(`/api/data/subjects?site_ids=${encodeURIComponent(siteIdsString)}`);
 
-    if (!response?.data || !Array.isArray(response.data)) {
-        console.error('Invalid response from getSubjects:', response);
+    if (!response.ok) {
+        console.error('Failed to fetch subjects');
+        return [];
+    }
+    const data = await response.json();
+    
+    if (!data || !Array.isArray(data)) {
+        console.error('Invalid response from getSubjects:', data);
         return [];
     }
     
-    return response.data.map((subject: any) => ({
+    return data.map((subject: any) => ({
         id: subject.SubjectId,
         name: subject.SubjectName,
         status: subject.status || "Enrolled",
@@ -86,6 +61,9 @@ export async function getSubjects(siteIds: string[] | null): Promise<Subject[]> 
         arm: subject.arm || "Placebo"
     }));
 }
+
+// These functions below are not currently used by the SSR-refactored app
+// but are kept for potential future client-side needs.
 
 export async function getVisits(subjectId?: string): Promise<Visit[]> {
   const params = new URLSearchParams();
@@ -166,22 +144,4 @@ export async function getAnalysisData(uids: string[]): Promise<AnalysisData[]> {
     if (!response.data) throw new Error("No 'data' field in response");
 
     return response.data;
-}
-
-export async function getSubjectDetails(subjectId: string): Promise<ApiResponse<SubjectDetailsData>> {
-    const url = `${API_BASE_URL}/subject_details?subject_id=${encodeURIComponent(subjectId)}`;
-
-    try {
-        const response = await fetchWithAuth(url, {
-            method: "GET",
-        });
-
-        if (!response || !response.success || !response.data || !response.data.subject_details) {
-            throw new Error(response.message || "Invalid response from server");
-        }
-        return response;
-    } catch (error: any) {
-        console.error("Error fetching subject details:", error);
-        return { success: false, data: {} as SubjectDetailsData, message: error.message };
-    }
 }

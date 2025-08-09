@@ -1,16 +1,6 @@
-
-"use client"
-
-import React, { useState, useEffect } from 'react';
-import { useRouter } from "next/navigation";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select"
-import { Button } from "@/components/ui/button"
+import { getStudies, setStudyNameOnServer } from '@/lib/server-api';
+import { getUserFromCookie, getSelectedStudyFromCookie } from '@/lib/server-auth';
+import { redirect } from 'next/navigation';
 import {
   Card,
   CardContent,
@@ -18,68 +8,37 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card"
-import { Label } from "@/components/ui/label"
-import { getStudies, setStudyName } from "@/lib/api";
-import { getCurrentUser, setSelectedStudy as setLocalStudy, isAuthenticated, getSelectedStudy } from "@/lib/authenticate";
-import { Study } from "@/types";
-import { Skeleton } from "@/components/ui/skeleton";
-import { useToast } from "@/hooks/use-toast";
+import StudySelectorClient from './study-selector-client';
 
+export default async function StudySelectorPage() {
+    const selectedStudy = await getSelectedStudyFromCookie();
+    
+    // If a study is already selected in cookies, redirect to dashboard
+    if (selectedStudy) {
+        redirect('/dashboard');
+    }
 
-export default function StudySelectorPage() {
-    const [studies, setStudies] = useState<Study[]>([]);
-    const [selectedStudyId, setSelectedStudyId] = useState<string | null>(null);
-    const [loading, setLoading] = useState(true);
-    const { toast } = useToast();
-    const router = useRouter();
+    const user = await getUserFromCookie();
+    if (!user) {
+        redirect('/login');
+    }
 
-    useEffect(() => {
-        // This check runs client-side after hydration
-        if (typeof window !== 'undefined') {
-            if (!isAuthenticated()) {
-                router.replace('/login');
-            } else if (getSelectedStudy()) {
-                router.replace('/dashboard'); 
-            }
+    const studies = await getStudies(user.id);
+    
+    // This server action will be passed to the client component.
+    // It runs on the server to set the cookie.
+    async function selectStudyAction(studyId: string, studyName: string) {
+        'use server';
+        try {
+            await setStudyNameOnServer(studyId, studyName);
+        } catch (e) {
+            console.error("Failed to set study in cookie", e);
+            // Handle error appropriately
+            return { success: false, message: "Failed to select study." };
         }
-    }, [router]);
-
-    useEffect(() => {
-        const fetchStudies = async () => {
-            try {
-                const currentUser = getCurrentUser();
-                if (!currentUser) {
-                    toast({ variant: 'destructive', title: 'Error', description: 'You must be logged in.' });
-                    router.push('/login');
-                    return;
-                }
-                const userId = currentUser?.id;
-                const fetchedStudies = await getStudies(userId);
-                setStudies(fetchedStudies);
-            } catch (error: any) {
-                console.error("Failed to fetch studies", error);
-                toast({ variant: 'destructive', title: 'Error', description: error.message || 'Failed to fetch studies.' });
-            } finally {
-                setLoading(false);
-            }
-        };
-        fetchStudies();
-    }, [toast, router]);
-
-    const handleProceed = async () => {
-        const selectedStudy = studies.find(s => s.id === selectedStudyId);
-        if (selectedStudy) {
-            try {
-                // This sets the DB context on the backend
-                await setStudyName(selectedStudy.name); 
-                // This saves the selection in localStorage for the client
-                setLocalStudy(selectedStudy.id);
-                router.push('/dashboard');
-            } catch (error: any) {
-                 console.error("Failed to set study name", error);
-                 toast({ variant: 'destructive', title: 'Error', description: error.message || 'Failed to select study.' });
-            }
-        }
+        // Instead of redirecting here, we let the client do it
+        // to ensure a smooth transition.
+        return { success: true };
     }
 
     return (
@@ -92,30 +51,7 @@ export default function StudySelectorPage() {
                     </CardDescription>
                 </CardHeader>
                 <CardContent>
-                    <div className="grid gap-4">
-                        <div className="grid gap-2">
-                            <Label htmlFor="study">Study</Label>
-                            {loading ? (
-                                <Skeleton className="h-10 w-full" />
-                            ) : (
-                                <Select onValueChange={setSelectedStudyId} disabled={studies.length === 0}>
-                                    <SelectTrigger id="study">
-                                        <SelectValue placeholder={studies.length > 0 ? "Select a study" : "No studies available"} />
-                                    </SelectTrigger>
-                                    <SelectContent>
-                                        {studies.map(study => (
-                                            <SelectItem key={study.id} value={study.id}>
-                                                {study.name}
-                                            </SelectItem>
-                                        ))}
-                                    </SelectContent>
-                                </Select>
-                            )}
-                        </div>
-                        <Button onClick={handleProceed} className="w-full" disabled={!selectedStudyId || loading}>
-                           Proceed to Dashboard
-                        </Button>
-                    </div>
+                    <StudySelectorClient studies={studies} selectStudyAction={selectStudyAction} />
                 </CardContent>
             </Card>
         </div>

@@ -26,7 +26,7 @@ import {
   TableRow,
 } from "@/components/ui/table"
 import { Skeleton } from "../ui/skeleton";
-import { useDashboardStore } from "@/store/dashboard-store";
+import { useDashboardStore } from "@/store/dashboard-store-provider";
 
 export function SubjectsTable() {
   const router = useRouter();

@@ -16,7 +16,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useToast } from '@/hooks/use-toast';
-import { login, isAuthenticated, getSelectedStudy } from '@/lib/authenticate';
+import { login, isAuthenticated } from '@/lib/authenticate';
 import { Loader2 } from 'lucide-react';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 
@@ -25,18 +25,20 @@ export default function LoginPage() {
   const { toast } = useToast();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const [isLoading, setIsLoading] = useState(false);
+  const [isLoading, setIsLoading] = useState(true); // Start with loading true for auth check
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    // This check runs client-side after hydration to avoid server-side rendering issues with localStorage
-    if (isAuthenticated()) {
-      if (getSelectedStudy()) {
-        router.replace('/dashboard');
-      } else {
-        router.replace('/study-selector');
-      }
-    }
+    // This check runs client-side after hydration to avoid server-side rendering issues
+    const checkAuth = async () => {
+        const authenticated = await isAuthenticated();
+        if (authenticated) {
+            router.replace('/study-selector');
+        } else {
+            setIsLoading(false); // Only stop loading if not authenticated
+        }
+    };
+    checkAuth();
   }, [router]);
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -44,20 +46,29 @@ export default function LoginPage() {
     setIsLoading(true);
     setError(null);
     try {
-      const user = await login(email, password);
-      if (user) {
-        toast({ title: "Login Successful", description: `Welcome back, ${user.name}` });
+      const success = await login(email, password);
+      if (success) {
+        toast({ title: "Login Successful", description: "Welcome back!" });
         router.push('/study-selector');
+        router.refresh(); // Force a refresh to update server-side auth state
       } else {
-        // This case should ideally not be hit if login throws an error
         setError("Invalid username or password.");
       }
     } catch (error: any) {
-      setError(error.message || "Invalid username or password.");
+      setError(error.message || "An unexpected error occurred during login.");
     } finally {
       setIsLoading(false);
     }
   };
+  
+  // If loading, show a full-screen spinner
+  if (isLoading) {
+      return (
+          <div className="flex h-screen w-full items-center justify-center">
+              <Loader2 className="h-12 w-12 animate-spin text-primary" />
+          </div>
+      )
+  }
 
   return (
     <div className="w-full lg:grid lg:min-h-screen lg:grid-cols-2">

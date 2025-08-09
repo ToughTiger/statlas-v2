@@ -1,85 +1,34 @@
-
-'use client';
-
 import Link from 'next/link';
-import React, { useEffect, useState } from 'react';
+import { notFound } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { ArrowLeft, User, HeartPulse, TestTube, Pill } from 'lucide-react';
 import { CartesianGrid, Line, LineChart, XAxis, YAxis, Tooltip, ResponsiveContainer } from 'recharts';
-import { Skeleton } from '@/components/ui/skeleton';
-import { getSubjectDetails } from '@/lib/api';
+import { getSubjectDetails } from '@/lib/server-api';
 import { SubjectDetailsData, ApiResponse } from '@/types';
 
-export default function SubjectDetailPage({ params }: { params: { id: string } }) {
+export default async function SubjectDetailPage({ params }: { params: { id: string } }) {
   const subjectId = params.id;
-  const [subjectData, setSubjectData] = useState<SubjectDetailsData | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  
+  let subjectData: SubjectDetailsData | null = null;
+  let error: string | null = null;
 
-  useEffect(() => {
-    if (subjectId) {
-      const fetchSubjectData = async () => {
-        setLoading(true);
-        setError(null);
-        try {
-          const response: ApiResponse<SubjectDetailsData> = await getSubjectDetails(subjectId);
-           if (!response.success || !response.data || !response.data.subject_details) {
-            throw new Error(response.message || 'Subject not found');
-          }
-          setSubjectData(response.data);
-        } catch (err: any) {
-          console.error("Failed to fetch subject data:", err);
-          setError(err.message || "An unexpected error occurred.");
-          setSubjectData(null);
-        } finally {
-          setLoading(false);
-        }
-      };
-      fetchSubjectData();
+  try {
+    const response: ApiResponse<SubjectDetailsData> = await getSubjectDetails(subjectId);
+    if (!response.success || !response.data || !response.data.subject_details) {
+      throw new Error(response.message || 'Subject not found');
     }
-  }, [subjectId]);
-
-  if (loading) {
-    return (
-      <main className="flex flex-1 flex-col gap-4 p-4 md:gap-8 md:p-8 animate-pulse">
-        <div className="flex items-center gap-4">
-            <Skeleton className="h-8 w-8 rounded-md" />
-            <Skeleton className="h-7 w-1/3" />
-        </div>
-         <div className="grid gap-4 md:grid-cols-2 md:gap-8 lg:grid-cols-4">
-            <Card><CardHeader><Skeleton className="h-5 w-2/3 mb-2" /></CardHeader><CardContent><Skeleton className="h-4 w-full mb-1" /><Skeleton className="h-4 w-full mb-1" /><Skeleton className="h-4 w-3/4" /></CardContent></Card>
-            <Card><CardHeader><Skeleton className="h-5 w-2/3 mb-2" /></CardHeader><CardContent><Skeleton className="h-4 w-full mb-1" /><Skeleton className="h-4 w-full mb-1" /><Skeleton className="h-4 w-3/4" /></CardContent></Card>
-            <Card><CardHeader><Skeleton className="h-5 w-2/3 mb-2" /></CardHeader><CardContent><Skeleton className="h-4 w-full mb-1" /><Skeleton className="h-4 w-full mb-1" /><Skeleton className="h-4 w-3/4" /></CardContent></Card>
-            <Card><CardHeader><Skeleton className="h-5 w-2/3 mb-2" /></CardHeader><CardContent><Skeleton className="h-4 w-full mb-1" /><Skeleton className="h-4 w-full mb-1" /><Skeleton className="h-4 w-3/4" /></CardContent></Card>
-        </div>
-        <div className="grid gap-4 md:grid-cols-2 md:gap-8">
-            <Skeleton className="h-[350px] w-full" />
-            <Skeleton className="h-[350px] w-full" />
-        </div>
-      </main>
-    )
-  }
-
-  if (error) {
-     return (
-        <main className="flex flex-1 flex-col gap-4 p-4 md:gap-8 md:p-8 items-center justify-center">
-            <Card className="p-8 text-center">
-                <CardTitle className="text-2xl text-destructive">Subject Not Found</CardTitle>
-                <CardContent className="mt-4">
-                    <p>The subject with ID "{subjectId}" could not be found.</p>
-                     <p className="text-sm text-muted-foreground">{error}</p>
-                    <Button asChild className="mt-4">
-                        <Link href="/dashboard">Back to Dashboard</Link>
-                    </Button>
-                </CardContent>
-            </Card>
-        </main>
-     )
+    subjectData = response.data;
+  } catch (err: any) {
+    console.error("Failed to fetch subject data:", err);
+    error = err.message || "An unexpected error occurred.";
+    // This will trigger the notFound() UI, which is more appropriate for SSR
+    notFound();
   }
 
   if (!subjectData) {
-    return null; // Should not happen if not loading and no error, but good practice
+    // If there's no data and no error, it implies a notFound case.
+    notFound();
   }
 
   const { subject_details, vitals_history, labs_history } = subjectData;

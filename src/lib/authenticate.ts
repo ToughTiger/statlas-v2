@@ -1,48 +1,20 @@
 
 'use client';
 
-import { User, DatabaseName, ApiResponse } from '@/types';
-import { decodeJwt } from '@/app/utils/jwt';
+// This file handles CLIENT-SIDE authentication logic.
+// It is responsible for making API calls to log in/out,
+// but does not handle tokens directly. Token management is
+// done via secure, httpOnly cookies handled by the server.
 
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:8000/api';
-const AUTH_TOKEN_KEY = 'JWT_TOKEN'; // Key for storing JWT token in localStorage
-const SELECTED_STUDY_KEY = 'Selected Study'; // Key for storing selected study in localStorage
-const CURRENT_USER_KEY = 'Current User'; // Key for storing current user in localStorage
+const API_BASE_URL = '/api/auth'; // Use a relative path to our app's auth routes
 
-export async function fetchWithAuth(url: string, options: RequestInit = {}) {
-  const token = localStorage.getItem(AUTH_TOKEN_KEY);
-
-  const headers = new Headers(options.headers || {});
-  if (token) {
-    headers.append('Authorization', `Bearer ${token}`);
-  }
-
-  const response = await fetch(url, {
-    ...options,
-    headers,
-    credentials: 'include',
-  });
-
-  if (!response.ok) {
-    const errorData = await response.json().catch(() => ({ message: response.statusText }));
-    throw new Error(errorData.message || `API request failed with status: ${response.status}`);
-  }
-
-  return response.json();
-}
-
-export async function login(username: string, password: string): Promise<User | null> {
-  const formData = new URLSearchParams();
-  formData.append('username', username);
-  formData.append('password', password);
-  formData.append('grant_type', 'password');
-
+export async function login(username: string, password: string): Promise<boolean> {
   const response = await fetch(`${API_BASE_URL}/login`, {
     method: 'POST',
     headers: {
-      'Content-Type': 'application/x-www-form-urlencoded',
+      'Content-Type': 'application/json',
     },
-    body: formData,
+    body: JSON.stringify({ username, password }),
   });
 
   if (!response.ok) {
@@ -50,69 +22,44 @@ export async function login(username: string, password: string): Promise<User | 
     throw new Error(errorData.detail || 'Invalid username or password.');
   }
 
-  const { access_token } = await response.json();
-  if (!access_token) {
-    console.error("Login failed: No access token received");
-    throw new Error("Login failed: Could not retrieve access token.");
-  }
-
-  const decodedUser = decodeJwt(access_token);
-  const user = {
-    id: decodedUser?.userid?.toString() || '',
-    username: decodedUser?.username || '',
-    name: `${decodedUser?.first_name || ''} ${decodedUser?.last_name || ''}`.trim(),
-    email: decodedUser?.EmailId || '',
-    firstName: decodedUser?.first_name || '',
-    lastName: decodedUser?.last_name || '',
-  };
-
-  if (typeof window !== 'undefined') {
-    localStorage.setItem(AUTH_TOKEN_KEY, access_token);
-    localStorage.setItem(CURRENT_USER_KEY, JSON.stringify(user));
-  }
-
-  return user;
+  return response.ok;
 }
 
-export function logout(): void {
-  if (typeof window !== 'undefined') {
-    localStorage.removeItem(AUTH_TOKEN_KEY);
-    localStorage.removeItem(SELECTED_STUDY_KEY);
-    localStorage.removeItem(CURRENT_USER_KEY);
+export async function logout(): Promise<void> {
+  try {
+    await fetch(`${API_BASE_URL}/logout`, { method: 'POST' });
+  } catch (error) {
+    console.error("Logout failed:", error);
+  } finally {
+    // Redirect to login after attempting to log out, regardless of success
     window.location.href = '/login';
   }
 }
 
-export async function database(databaseName: string): Promise<ApiResponse<DatabaseName>> {
-  const response = await fetchWithAuth(`${API_BASE_URL}/dbname/${databaseName}`, {
-    method: 'POST',
-  });
-  return response;
-}
-
-export function getCurrentUser(): User | null {
-  if (typeof window === 'undefined') return null;
-  const userStr = localStorage.getItem(CURRENT_USER_KEY);
+export async function isAuthenticated(): Promise<boolean> {
   try {
-    return userStr ? JSON.parse(userStr) : null;
-  } catch (e) {
-    console.error("Error parsing current user from localStorage", e);
-    return null;
+    const response = await fetch(`${API_BASE_URL}/status`);
+    if (!response.ok) return false;
+    const data = await response.json();
+    return data.isAuthenticated === true;
+  } catch (error) {
+    console.error("Auth status check failed:", error);
+    return false;
   }
 }
 
-export function setSelectedStudy(studyId: string): void {
-  if (typeof window !== 'undefined') {
-    localStorage.setItem(SELECTED_STUDY_KEY, studyId);
+
+// This function is kept for client-side API calls that might still be needed.
+// It will automatically include cookies.
+export async function fetchWithAuth(url: string, options: RequestInit = {}) {
+  const response = await fetch(url, options);
+
+  if (!response.ok) {
+    const errorData = await response.json().catch(() => ({ message: response.statusText }));
+    throw new Error(errorData.message || `API request failed with status: ${response.status}`);
   }
-}
 
-export function getSelectedStudy(): string | null {
-  if (typeof window === 'undefined') return null;
-  return localStorage.getItem(SELECTED_STUDY_KEY);
-}
-
-export function isAuthenticated(): boolean {
-  if (typeof window === 'undefined') return false;
-  return !!localStorage.getItem(AUTH_TOKEN_KEY);
+  // Handle cases where the response might be empty
+  const text = await response.text();
+  return text ? JSON.parse(text) : {};
 }

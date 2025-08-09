@@ -1,5 +1,4 @@
-
-import { create } from 'zustand';
+import { createStore } from 'zustand';
 import { useToast } from '@/hooks/use-toast';
 import { getDashboardInsight } from '@/ai/flows/dashboard-insights-flow';
 import { getPrediction } from '@/ai/flows/predictive-analysis-flow';
@@ -44,7 +43,7 @@ export type Filters = {
   operations: string[];
 };
 
-interface DashboardState {
+export interface DashboardState {
   // State
   layouts: DashboardLayout[];
   activeLayout: DashboardLayout | null;
@@ -104,7 +103,7 @@ const createDefaultLayout = (): DashboardLayout => ({
 });
 
 
-export const useDashboardStore = create<DashboardState>((set, get) => ({
+export const createDashboardStore = () => createStore<DashboardState>((set, get) => ({
   // Initial State
   layouts: [],
   activeLayout: null,
@@ -133,6 +132,7 @@ export const useDashboardStore = create<DashboardState>((set, get) => ({
   fetchLayouts: async () => {
     set({ isLoading: true });
     try {
+      // Using a client-side API route for this
       const response = await fetch('/api/dashboards');
       if (!response.ok) throw new Error('Failed to fetch layouts');
       const data = await response.json();
@@ -344,7 +344,7 @@ export const useDashboardStore = create<DashboardState>((set, get) => ({
     try {
       const { filters } = get();
       const siteIds = filters.sites.length > 0 ? filters.sites : null;
-      const subjectData = await getSubjects(siteIds);
+      const subjectData = await getSubjects(siteIds); // This now calls the client-side API route
       set({ subjects: subjectData, isLoadingSubjects: false });
     } catch (error) {
       console.error("Failed to fetch subjects:", error);
@@ -354,6 +354,7 @@ export const useDashboardStore = create<DashboardState>((set, get) => ({
   
   fetchFilterOptions: async () => {
     try {
+        // This is a client-side call
         const sites = await getAllSites();
         const siteOptions = sites.map(site => ({ label: site.name, value: site.id }));
         set({ siteOptions });

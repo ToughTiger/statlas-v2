@@ -25,6 +25,14 @@ const nextConfig: NextConfig = {
     'https://*.cloudworkstations.dev',
     'https://*.firebase.studio',
   ],
+  async rewrites() {
+    return [
+      {
+        source: '/api/auth/:path*',
+        destination: `http://localhost:8000/api/:path*`, // Proxy to Backend
+      },
+    ]
+  },
 };
 
 export default nextConfig;
