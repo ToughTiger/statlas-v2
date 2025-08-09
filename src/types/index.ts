@@ -31,8 +31,8 @@ export interface ApiResponse<T> {
 }
 
 export interface Study {
-  id: string; // Changed from study_id for consistency in the app
-  name: string; // Changed from study_name
+  id: string; 
+  name: string;
 }
 
 export interface DatabaseName { 
@@ -40,14 +40,13 @@ export interface DatabaseName {
 }
 
 export interface Site {
-  id: string; // Changed from SiteID
-  name: string; // Changed from HospitalName
+  id: string;
+  name: string;
 }
 
 export interface Subject { 
-  id: string; // Changed from SubjectId
-  name: string; // Changed from SubjectName
-  // These fields are required by the SubjectsTable, so we'll keep them
+  id: string;
+  name: string;
   status: string;
   age: number;
   gender: string;
@@ -55,24 +54,24 @@ export interface Subject {
 }
 
 export interface Visit {
-  id: string; // Changed from VisitID
-  name: string; // Changed from VisitName
+  id: string;
+  name: string;
 }
 
 export interface Form {
-  id: string; // Changed from PanelID
-  name: string; // Changed from PanelName
+  id: string;
+  name: string;
 }
 
 export interface Field {
-  id: string; // Changed from DyanamicAttributeID
-  name: string;  // Changed from AttributeName
-  attribute_id: string; // Keep this for LOV fetching
+  id: string;
+  name: string;
+  attribute_id: string;
 }
 
 export interface LovValue {
-  id: string; // Changed from AttributeID
-  value: string; // Changed from DisplayText
+  id: string;
+  value: string;
 }
 
 export type OptionType = {

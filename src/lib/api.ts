@@ -39,7 +39,6 @@ export async function setStudyName(studyName: string |null) {
     if (!studyName) {
         throw new Error("Study name cannot be null.");
     }
-    // The backend seems to expect the study name, not an ID.
     const response = await database(studyName);
     return response.data;
 }
@@ -78,16 +77,13 @@ export async function getSubjects(siteIds: string[] | null): Promise<Subject[]> 
         return [];
     }
     
-    // The subject data from the user has a different shape than what the table needs.
-    // We will assume the API provides the necessary fields and map them.
-    // This is a placeholder mapping and might need adjustment based on actual API response.
     return response.data.map((subject: any) => ({
         id: subject.SubjectId,
-        name: subject.SubjectName, // Assuming SubjectName is available
-        status: subject.status || "Enrolled", // Placeholder
-        age: subject.age || 30, // Placeholder
-        gender: subject.gender || "N/A", // Placeholder
-        arm: subject.arm || "Placebo" // Placeholder
+        name: subject.SubjectName,
+        status: subject.status || "Enrolled",
+        age: subject.age || 30,
+        gender: subject.gender || "N/A",
+        arm: subject.arm || "Placebo"
     }));
 }
 
@@ -142,7 +138,7 @@ export async function getFields(visitFormIds: string[], formId: string[]): Promi
     return response.data.map((field: any) => ({
         id: field.DyanamicAttributeID,
         name: field.AttributeName,
-        attribute_id: field.DyanamicAttributeID, // Or another field if available
+        attribute_id: field.DyanamicAttributeID,
     }));
 }
 
@@ -155,7 +151,7 @@ export async function getLovValues(AttributeID: string): Promise<LovValue[]> {
     return [];
   }
   return response.data.map((lov: any) => ({
-    id: lov.AttributeID, // This seems odd, maybe should be another unique ID
+    id: lov.AttributeID,
     value: lov.DisplayText,
   }));
 }
@@ -186,7 +182,6 @@ export async function getSubjectDetails(subjectId: string): Promise<ApiResponse<
         return response;
     } catch (error: any) {
         console.error("Error fetching subject details:", error);
-        // Re-throw as a more structured object for the UI to handle
         return { success: false, data: {} as SubjectDetailsData, message: error.message };
     }
 }
