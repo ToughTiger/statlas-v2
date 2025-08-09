@@ -1,8 +1,8 @@
 
 "use client"
 
-import Link from "next/link"
 import React, { useState, useEffect } from 'react';
+import { useRouter } from "next/navigation";
 import {
   Select,
   SelectContent,
@@ -20,19 +20,29 @@ import {
 } from "@/components/ui/card"
 import { Label } from "@/components/ui/label"
 import { getStudies, setStudyName } from "@/lib/api";
-import { getCurrentUser, setSelectedStudy as setLocalStudy } from "@/lib/authenticate";
+import { getCurrentUser, setSelectedStudy as setLocalStudy, isAuthenticated, getSelectedStudy } from "@/lib/authenticate";
 import { Study } from "@/types";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useToast } from "@/hooks/use-toast";
-import { useRouter } from "next/navigation";
 
 
 export default function StudySelectorPage() {
     const [studies, setStudies] = useState<Study[]>([]);
-    const [selectedStudy, setSelectedStudy] = useState<Study | null>(null);
+    const [selectedStudyId, setSelectedStudyId] = useState<string | null>(null);
     const [loading, setLoading] = useState(true);
     const { toast } = useToast();
     const router = useRouter();
+
+    useEffect(() => {
+        // This check runs client-side after hydration
+        if (typeof window !== 'undefined') {
+            if (!isAuthenticated()) {
+                router.replace('/login');
+            } else if (getSelectedStudy()) {
+                router.replace('/dashboard'); 
+            }
+        }
+    }, [router]);
 
     useEffect(() => {
         const fetchStudies = async () => {
@@ -57,6 +67,7 @@ export default function StudySelectorPage() {
     }, [toast, router]);
 
     const handleProceed = async () => {
+        const selectedStudy = studies.find(s => s.id === selectedStudyId);
         if (selectedStudy) {
             try {
                 // This sets the DB context on the backend
@@ -70,11 +81,6 @@ export default function StudySelectorPage() {
             }
         }
     }
-    
-    const handleValueChange = (studyId: string) => {
-        const study = studies.find(s => s.id === studyId);
-        setSelectedStudy(study || null);
-    };
 
     return (
         <div className="flex items-center justify-center min-h-screen bg-background">
@@ -92,7 +98,7 @@ export default function StudySelectorPage() {
                             {loading ? (
                                 <Skeleton className="h-10 w-full" />
                             ) : (
-                                <Select onValueChange={handleValueChange} disabled={studies.length === 0}>
+                                <Select onValueChange={setSelectedStudyId} disabled={studies.length === 0}>
                                     <SelectTrigger id="study">
                                         <SelectValue placeholder={studies.length > 0 ? "Select a study" : "No studies available"} />
                                     </SelectTrigger>
@@ -106,7 +112,7 @@ export default function StudySelectorPage() {
                                 </Select>
                             )}
                         </div>
-                        <Button onClick={handleProceed} className="w-full" disabled={!selectedStudy || loading}>
+                        <Button onClick={handleProceed} className="w-full" disabled={!selectedStudyId || loading}>
                            Proceed to Dashboard
                         </Button>
                     </div>
