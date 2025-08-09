@@ -1,3 +1,4 @@
+
 'use client';
 
 import { User, DatabaseName, ApiResponse } from '@/types';
@@ -24,7 +25,7 @@ export async function fetchWithAuth(url: string, options: RequestInit = {}) {
 
   if (!response.ok) {
     const errorData = await response.json().catch(() => ({ message: response.statusText }));
-    throw new Error(errorData.message || `API request failed: ${response.statusText}`);
+    throw new Error(errorData.message || `API request failed with status: ${response.status}`);
   }
 
   return response.json();
@@ -45,21 +46,21 @@ export async function login(username: string, password: string): Promise<User | 
   });
 
   if (!response.ok) {
-    const errorText = await response.text();
-    throw new Error(errorText || 'Login failed');
+    const errorData = await response.json().catch(() => ({ detail: 'Login failed due to a network or server error.' }));
+    throw new Error(errorData.detail || 'Invalid username or password.');
   }
 
   const { access_token } = await response.json();
   if (!access_token) {
     console.error("Login failed: No access token received");
-    return null;
+    throw new Error("Login failed: Could not retrieve access token.");
   }
 
   const decodedUser = decodeJwt(access_token);
   const user = {
     id: decodedUser?.userid?.toString() || '',
     username: decodedUser?.username || '',
-    name: `${decodedUser?.first_name || ''} ${decodedUser?.last_name || ''}`,
+    name: `${decodedUser?.first_name || ''} ${decodedUser?.last_name || ''}`.trim(),
     email: decodedUser?.EmailId || '',
     firstName: decodedUser?.first_name || '',
     lastName: decodedUser?.last_name || '',

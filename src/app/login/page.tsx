@@ -1,7 +1,7 @@
 
 "use client";
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
 import { useRouter } from 'next/navigation';
@@ -16,8 +16,9 @@ import {
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useToast } from '@/hooks/use-toast';
-import { login } from '@/lib/authenticate';
+import { login, isAuthenticated, getSelectedStudy } from '@/lib/authenticate';
 import { Loader2 } from 'lucide-react';
+import { Alert, AlertDescription } from '@/components/ui/alert';
 
 export default function LoginPage() {
   const router = useRouter();
@@ -25,24 +26,34 @@ export default function LoginPage() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    // This check runs client-side after hydration to avoid server-side rendering issues with localStorage
+    if (isAuthenticated()) {
+      if (getSelectedStudy()) {
+        router.replace('/dashboard');
+      } else {
+        router.replace('/study-selector');
+      }
+    }
+  }, [router]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
+    setError(null);
     try {
       const user = await login(email, password);
       if (user) {
         toast({ title: "Login Successful", description: `Welcome back, ${user.name}` });
         router.push('/study-selector');
       } else {
-        throw new Error("Login failed: User not returned");
+        // This case should ideally not be hit if login throws an error
+        setError("Invalid username or password.");
       }
     } catch (error: any) {
-      toast({
-        variant: "destructive",
-        title: "Login Failed",
-        description: error.message || "An unexpected error occurred.",
-      });
+      setError(error.message || "Invalid username or password.");
     } finally {
       setIsLoading(false);
     }
@@ -106,6 +117,13 @@ export default function LoginPage() {
                             disabled={isLoading}
                           />
                       </div>
+                      {error && (
+                        <Alert variant="destructive">
+                            <AlertDescription>
+                                {error}
+                            </AlertDescription>
+                        </Alert>
+                      )}
                       <Button type="submit" className="w-full" disabled={isLoading}>
                         {isLoading ? <Loader2 className="animate-spin" /> : 'Login'}
                       </Button>
