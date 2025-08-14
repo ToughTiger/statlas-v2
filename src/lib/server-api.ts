@@ -48,12 +48,10 @@ export async function setStudyNameOnServer(studyId: string, studyName: string) {
     if (!studyName) {
         throw new Error("Study name cannot be null.");
     }
-    // const res = await serverFetchWithAuth(`${API_BASE_URL}/dbname/${studyName}`, {
-    const res = await fetch(`${BASE_URL}/api/set-study`, {
+    const res = await serverFetchWithAuth(`${BASE_URL}/api/set-study`, {
          method: 'POST',
          headers: { "Content-Type": "application/json" },
-         credentials: "include",
-         body: JSON.stringify({ studyName }),
+         body: JSON.stringify({ studyId, studyName }),
     });
    
     return res;

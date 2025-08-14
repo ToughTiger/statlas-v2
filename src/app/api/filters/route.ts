@@ -28,6 +28,22 @@ const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:8
 //     return new NextResponse('Internal Server Error', { status: 500 });
 //   }
 // }
+async function handleRequest(url: string) {
+  try {
+    const data = await fetchWithAuthServer(url);
+    return NextResponse.json(data);
+  } catch (error) {
+    console.error(`Error fetching from server:`, error);
+    if (error instanceof Error) {
+      return new NextResponse(JSON.stringify({ detail: error.message }), {
+        status: 500,
+        headers: { 'Content-Type': 'application/json' },
+      });
+    }
+    return new NextResponse('Internal Server Error', { status: 500 });
+  }
+}
+
 export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);
   const type = searchParams.get('type');
@@ -35,17 +51,17 @@ export async function GET(request: Request) {
 
   switch (type) {
     case 'sites':
-      return fetchWithAuthServer(`${API_BASE_URL}/all_sites`);
+      return handleRequest(`${API_BASE_URL}/all_sites`);
     case 'subjects':
-      return fetchWithAuthServer(`${API_BASE_URL}/subjects?siteId=${id}`);
+      return handleRequest(`${API_BASE_URL}/subjects?siteId=${id}`);
     case 'visits':
-      return fetchWithAuthServer(`${API_BASE_URL}/visits`);
+      return handleRequest(`${API_BASE_URL}/visits`);
     case 'forms':
-      return fetchWithAuthServer(`${API_BASE_URL}/forms?visitId=${id}`);
+      return handleRequest(`${API_BASE_URL}/forms?visitId=${id}`);
     case 'fields':
-      return fetchWithAuthServer(`${API_BASE_URL}/fields?formId=${id}`);
+      return handleRequest(`${API_BASE_URL}/fields?formId=${id}`);
     case 'lovs':
-      return fetchWithAuthServer(`${API_BASE_URL}/lovs?fieldId=${id}`);
+      return handleRequest(`${API_BASE_URL}/lovs?fieldId=${id}`);
     default:
       return NextResponse.json({ error: 'Invalid type' }, { status: 400 });
   }
