@@ -27,14 +27,8 @@ const nextConfig: NextConfig = {
     'https://*.firebase.studio',
   ],
   async rewrites() {
-    const backendUrl = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:8000/api';
-    return [
-      {
-        source: '/api/auth/:path*',
-        // Proxy to the backend, removing the trailing '/api' if it exists
-        destination: `${backendUrl.replace(/\/api$/, '')}/:path*`, 
-      },
-    ]
+    const backendUrl = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:8000';
+    return []
   },
 };
 

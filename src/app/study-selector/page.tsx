@@ -32,7 +32,8 @@ export default async function StudySelectorPage() {
         'use server';
         try {
             // This server action sets the DB name and the cookies
-            await setStudyNameOnServer(studyId, studyName);
+            const res = await setStudyNameOnServer(studyId, studyName);
+            console.log("Set study name on server:", res);
         } catch (e) {
             console.error("Failed to set study in cookie", e);
             // We can return an error to the client component

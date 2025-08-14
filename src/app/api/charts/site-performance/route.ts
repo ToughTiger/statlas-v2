@@ -1,16 +1,11 @@
 
+import { fetchWithAuthServer } from '@/lib/server-auth';
 import { NextResponse } from 'next/server';
-
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:8000/api';
 export async function GET() {
-  const chartData = [
-    { site: "Site A", subjects: 86, fill: "var(--color-siteA)" },
-    { site: "Site B", subjects: 120, fill: "var(--color-siteB)" },
-    { site: "Site C", subjects: 75, fill: "var(--color-siteC)" },
-    { site: "Site D", subjects: 92, fill: "var(--color-siteD)" },
-    { site: "Site E", subjects: 110, fill: "var(--color-siteE)" },
-  ];
   
-  await new Promise(resolve => setTimeout(resolve, 1500));
+  const chartData = await fetchWithAuthServer(`${API_BASE_URL}/site_performance`).then((response) => response.json());
+  
 
   return NextResponse.json(chartData);
 }

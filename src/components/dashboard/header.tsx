@@ -40,11 +40,11 @@ import { logout } from '@/lib/authenticate';
 export function Header() {
   const router = useRouter();
   const [isSaveDialogOpen, setIsSaveDialogOpen] = useState(false);
-  const { layouts, activeLayout, selectLayout, saveLayout, isLoading } = useDashboardStore((state) => ({
+   const { layouts, activeLayout, selectLayout, isLoading } = useDashboardStore((state) => ({
     layouts: state.layouts,
     activeLayout: state.activeLayout,
     selectLayout: state.selectLayout,
-    saveLayout: state.saveLayout,
+    // saveLayout: state.saveLayout,
     isLoading: state.isLoading,
   }));
 
@@ -156,7 +156,7 @@ export function Header() {
     <SaveDashboardDialog
         isOpen={isSaveDialogOpen}
         onClose={() => setIsSaveDialogOpen(false)}
-        onSave={saveLayout}
+        // onSave={saveLayout}
         existingLayoutCount={layouts.length}
     />
     </>

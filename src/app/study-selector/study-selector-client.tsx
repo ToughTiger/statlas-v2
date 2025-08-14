@@ -40,11 +40,18 @@ export default function StudySelectorClient({ studies, selectStudyAction }: Stud
         setIsLoading(true);
 
         const selectedStudy = studies.find(s => s.id === selectedStudyId);
+        console.log("Selected study:", selectedStudy);
         if (!selectedStudy) return; // Should not happen
 
         const result = await selectStudyAction(selectedStudy.id, selectedStudy.name);
-
+        console.log("Select study result:", result);
         if (result.success) {
+            toast({
+                variant: "default",
+                title: "Success",
+                description: result.message || "Successfully selected the study.",
+            });
+            setIsLoading(false);
             router.push('/dashboard');
         } else {
             toast({
@@ -66,8 +73,8 @@ export default function StudySelectorClient({ studies, selectStudyAction }: Stud
                     </SelectTrigger>
                     <SelectContent>
                         {studies.length > 0 ? (
-                            studies.map((study) => (
-                                <SelectItem key={study.id} value={study.id}>
+                            studies.map((study, index) => (
+                                <SelectItem key={index} value={study.id}>
                                     {study.name}
                                 </SelectItem>
                             ))

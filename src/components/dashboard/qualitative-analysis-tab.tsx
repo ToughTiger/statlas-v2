@@ -10,9 +10,10 @@ import GenerateInsightButton from './generate-insight-button';
 import InsightModal from './insight-modal';
 import { useDashboardStore } from '@/store/dashboard-store-provider';
 import { TabsContent } from '../ui/tabs';
-
+import { useToast } from '@/hooks/use-toast';
 
 export default function QualitativeAnalysisTab() {
+    const { toast } = useToast();
   const { 
     activeLayout,
     setChartLayout,
@@ -40,7 +41,7 @@ export default function QualitativeAnalysisTab() {
   const [draggedItem, setDraggedItem] = useState<string | null>(null);
 
   useEffect(() => {
-    if (activeLayout?.qualitative.charts.length > 0) {
+    if (activeLayout && activeLayout.qualitative?.charts?.length > 0) {
       fetchQualitativeCharts();
     }
   }, [activeLayout, fetchQualitativeCharts]);
@@ -74,7 +75,27 @@ export default function QualitativeAnalysisTab() {
   
   const handleGenerateInsight = async (chartId: string, chartTitle: string) => {
     const chartData = chartsData[chartId];
-    generateInsight(chartId, chartTitle, chartData);
+    // generateInsight(chartId, chartTitle, chartData);
+    if (!chartData) {
+        toast({
+            variant: "destructive",
+            title: "Error",
+            description: "Chart data is not available for insight generation.",
+        });
+        return;
+    }
+    try {
+        await generateInsight(chartId, chartTitle, chartData);
+    } catch (error: any) {
+        const description = error.message.includes("GEMINI_API_KEY")
+            ? "Your GEMINI_API_KEY is not configured. Please add it to your .env file."
+            : "Could not generate AI insight. Please try again later.";
+        toast({
+            variant: "destructive",
+            title: "Error",
+            description: description,
+        });
+    }
   }
 
   if (!activeLayout) return null;

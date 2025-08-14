@@ -24,6 +24,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Loader, Wand2 } from "lucide-react";
 import { useDashboardStore } from '@/store/dashboard-store-provider';
 import { TabsContent } from '../ui/tabs';
+import { useToast } from '@/hooks/use-toast';
 
 const predictionTypes = [
   { value: "site-enrollment", label: "Site Enrollment Prediction" },
@@ -31,6 +32,7 @@ const predictionTypes = [
 ];
 
 export default function PredictiveAnalysisTab() {
+    const { toast } = useToast();
     const { 
         generatePrediction, 
         currentPrediction, 
@@ -62,12 +64,23 @@ export default function PredictiveAnalysisTab() {
         setPredictionType(value);
     }
 
-    const handleSubmit = (e: React.FormEvent) => {
+    const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
-        generatePrediction({
-            type: predictionType,
-            parameters: JSON.stringify(parameters)
-        });
+      try {
+            await generatePrediction({
+                type: predictionType,
+                parameters: JSON.stringify(parameters)
+            });
+        } catch (error: any) {
+             const description = error.message.includes("GEMINI_API_KEY")
+                ? "Your GEMINI_API_KEY is not configured. Please add it to your .env file."
+                : "Could not generate prediction. Please try again later.";
+            toast({
+                variant: "destructive",
+                title: "Error",
+                description: description,
+            });
+        }
     };
     
     // Effect to update local state when active layout changes

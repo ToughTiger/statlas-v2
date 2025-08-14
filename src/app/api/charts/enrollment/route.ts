@@ -1,17 +1,11 @@
 
+import { fetchWithAuthServer } from '@/lib/server-auth';
 import { NextResponse } from 'next/server';
-
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:8000/api';
 export async function GET() {
-  const chartData = [
-    { month: "January", enrolled: 12 },
-    { month: "February", enrolled: 25 },
-    { month: "March", enrolled: 38 },
-    { month: "April", enrolled: 51 },
-    { month: "May", enrolled: 64 },
-    { month: "June", enrolled: 77 },
-  ];
-
-  await new Promise(resolve => setTimeout(resolve, 1500));
+  
+  const chartData = await fetchWithAuthServer(`${API_BASE_URL}/enrollment_counts`).then((response) => response.json());
+  
 
   return NextResponse.json(chartData);
 }

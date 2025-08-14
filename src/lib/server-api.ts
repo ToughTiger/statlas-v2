@@ -1,17 +1,27 @@
+"use server";
+
 import 'server-only';
-import { fetchWithAuth as serverFetchWithAuth } from './server-auth';
+import { NextResponse } from 'next/server';
+import { fetchWithAuthServer, fetchWithAuthServer as serverFetchWithAuth } from './server-auth';
 import {
   ApiResponse,
   Site,
   Study,
   Subject,
   SubjectDetailsData,
+   Visit,
+  Form,
+  Field,
+  LovValue,
+  AnalysisData,
 } from '@/types';
 
 // This file contains API calls that are intended to be made from the SERVER-SIDE.
 // It uses the server-side fetchWithAuth which reads cookies from the request headers.
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:8000/api';
+
+
 
 
 export async function getStudies(userId: string | undefined): Promise<Study[]> {
@@ -31,28 +41,44 @@ export async function getStudies(userId: string | undefined): Promise<Study[]> {
 }
 
 
-export async function setStudyNameOnServer(studyId: string, studyName: string | null) {
+const BASE_URL =
+  process.env.NEXT_PUBLIC_BASE_URL || "http://localhost:9002";
+
+export async function setStudyNameOnServer(studyId: string, studyName: string) {
     if (!studyName) {
         throw new Error("Study name cannot be null.");
     }
-    // This function will now be responsible for calling the dbname endpoint
-    // AND setting the cookie for the selected study.
-    // The server-auth file handles cookie setting.
-    await serverFetchWithAuth(`${API_BASE_URL}/dbname/${studyName}`, {
-        method: 'POST',
+    // const res = await serverFetchWithAuth(`${API_BASE_URL}/dbname/${studyName}`, {
+    const res = await fetch(`${BASE_URL}/api/set-study`, {
+         method: 'POST',
+         headers: { "Content-Type": "application/json" },
+         credentials: "include",
+         body: JSON.stringify({ studyName }),
     });
-    return;
+   
+    return res;
 }
 
 export async function getAllSites(): Promise<Site[]> {
-    const response = await serverFetchWithAuth(`${API_BASE_URL}/all_sites`,{
-        method: 'GET',
-    });
-    if (!response?.data || !Array.isArray(response.data)) {
-        console.error('Invalid response from getAllSites:', response);
+
+  const baseUrl = typeof window === 'undefined'
+        ? process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:9002'
+        : '';
+    const response = await fetch(`${baseUrl}/api/sites`, { method: 'GET' });
+    if (!response.ok) {
+        console.error('Failed to fetch sites:', response.statusText);
         return [];
     }
-    return response.data.map((site: any) => ({
+
+    const sites = await response.json(); // Parse JSON body
+
+     if (!Array.isArray(sites)) {
+        console.error('Invalid response from getAllSites:', sites);
+        return [];
+    }
+    console.log("Site data:", sites)
+    // const data = response.json();
+    return sites.map((site: any) => ({
         id: site.SiteID,
         name: site.HospitalName,
     }));
@@ -70,7 +96,7 @@ export async function getSubjects(siteIds: string[] | null): Promise<Subject[]> 
         console.error('Invalid response from getSubjects:', response);
         return [];
     }
-    
+    console.log("Subject data:", response.data)
     return response.data;
 }
 
@@ -143,3 +169,85 @@ export async function getScreeningCount(): Promise<any> {
   if (!response) throw new Error("Failed to fetch screening counts");
    return response;
 }
+
+export async function getVisits(subjectId?: string): Promise<Visit[]> {
+  const params = new URLSearchParams();
+  if (subjectId !== undefined) {
+    params.append("subject_id", subjectId.toString());
+  }
+
+  const queryString = params.toString();
+  const response = await serverFetchWithAuth(`${API_BASE_URL}/visits${queryString ? `?${queryString}` : ''}`, {
+    method: 'GET',
+  });
+
+  if (!response?.data || !Array.isArray(response.data)) {
+    console.error('Invalid response from getVisits:', response);
+    return [];
+  }
+  return response.data.map((visit: any) => ({
+    id: visit.VisitID.toString(),
+    name: visit.VisitName,
+  }));
+}
+
+export async function getForms(visitIds: string[]): Promise<Form[]> {
+    const response = await serverFetchWithAuth(`${API_BASE_URL}/forms/${visitIds.join(',')}`,{
+      method: 'POST',
+    });
+    if (!response?.data || !Array.isArray(response.data)) {
+        console.error('Invalid response from getForms:', response);
+        return [];
+    }
+    return response.data.map((form: any) => ({
+        id: form.PanelID,
+        name: form.PanelName,
+    }));
+}
+
+export async function getFields(visitFormIds: string[], formId: string[]): Promise<Field[]> {
+    const visitFormIdsParam = visitFormIds.join(',');
+    const formIdsParam = formId.join(',');
+    
+    const url = `${API_BASE_URL}/fields/${visitFormIdsParam}/${formIdsParam}`;
+    const response = await serverFetchWithAuth(url,{
+      method: 'POST',
+    });
+ 
+    if (!response?.data || !Array.isArray(response.data)) {
+        console.error('Invalid response from getFields:', response);
+        return [];
+    }
+    return response.data.map((field: any) => ({
+        id: field.DyanamicAttributeID,
+        name: field.AttributeName,
+        attribute_id: field.DyanamicAttributeID,
+    }));
+}
+
+export async function getLovValues(AttributeID: string): Promise<LovValue[]> {
+  const response =  await serverFetchWithAuth(`${API_BASE_URL}/lov/${AttributeID}`, {
+    method: 'POST',
+  });
+  if (!response?.data || !Array.isArray(response.data)) {
+    console.error('Invalid response from getLovValues:', response);
+    return [];
+  }
+  return response.data.map((lov: any) => ({
+    id: lov.AttributeID,
+    value: lov.DisplayText,
+  }));
+}
+  
+export async function getAnalysisData(uids: string[]): Promise<AnalysisData[]> {
+    const uidsString = uids.map(encodeURIComponent).join(',');
+    const response =  await serverFetchWithAuth(`${API_BASE_URL}/data/${uidsString}`,{
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+    });
+
+    if (!response.data) throw new Error("No 'data' field in response");
+
+    return response.data;
+}
+

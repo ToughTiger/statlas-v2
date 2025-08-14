@@ -1,3 +1,5 @@
+
+
 import { createStore } from 'zustand';
 import { getDashboardInsight } from '@/ai/flows/dashboard-insights-flow';
 import { getPrediction } from '@/ai/flows/predictive-analysis-flow';
@@ -6,9 +8,7 @@ import GenderDistributionChart from '@/components/dashboard/charts/gender-distri
 import AdverseEventsChart from '@/components/dashboard/charts/adverse-events-chart';
 import SitePerformanceChart from '@/components/dashboard/charts/site-performance-chart';
 import type { PredictionInput } from '@/ai/flows/predictive-analysis-flow';
-import { getAllSites, getSubjects } from '@/lib/api';
-import type { Subject } from '@/types';
-
+import type { Site, Subject, Visit, Form, Field, LovValue } from '@/types';
 
 const allCharts = [
   { id: 'enrollment', component: EnrollmentChart, title: 'Enrollment Over Time' },
@@ -22,19 +22,14 @@ export type SelectOption = { label: string; value: string };
 export type DashboardLayout = {
   id: string;
   name: string;
-  qualitative: {
-    charts: { id: string; component: React.ComponentType<{ data: any[] }>; title: string }[];
-  };
-  statistical: {
-    operations: string[];
-  };
-  predictive: {
-    type: string;
-  };
+  qualitative: { charts: { id: string; component: React.ComponentType<{ data: any[] }>; title: string }[] };
+  statistical: { operations: string[] };
+  predictive: { type: string };
 };
 
 export type Filters = {
   sites: string[];
+  subjects: string[];
   visits: string[];
   forms: string[];
   fields: string[];
@@ -43,7 +38,6 @@ export type Filters = {
 };
 
 export interface DashboardState {
-  // State
   layouts: DashboardLayout[];
   activeLayout: DashboardLayout | null;
   activeTab: string;
@@ -59,76 +53,89 @@ export interface DashboardState {
   currentPrediction: string;
   isLoadingPrediction: boolean;
   predictionType: string;
+   sites: Site[];
   subjects: Subject[];
+  visits: Visit[];
+  forms: Form[];
+  fields: Field[];
+  lovs: LovValue[];
+ 
   isLoadingSubjects: boolean;
-  
-  // Filter options
+  isLoadingSites: boolean;
+
   siteOptions: SelectOption[];
+  subjectOptions: SelectOption[];
   visitOptions: SelectOption[];
   formOptions: SelectOption[];
   fieldOptions: SelectOption[];
   lovOptions: SelectOption[];
 
-  // Actions
   fetchLayouts: () => Promise<void>;
   selectLayout: (layoutId: string) => void;
-  saveLayout: (name: string, showToast: (options: any) => void) => Promise<void>;
+  saveLayout: (name: string) => Promise<void>;
   setChartLayout: (charts: any[]) => void;
   setActiveTab: (tab: string) => void;
   applyFilters: (newFilters: Filters) => void;
   fetchQualitativeCharts: () => Promise<void>;
   fetchStatisticalCharts: () => Promise<void>;
-  generateInsight: (chartId: string, chartTitle: string, chartData: any, showToast: (options: any) => void) => Promise<void>;
-  generatePrediction: (input: PredictionInput, showToast: (options: any) => void) => Promise<void>;
+  generateInsight: (chartId: string, chartTitle: string, chartData: any) => Promise<void>;
+  generatePrediction: (input: PredictionInput) => Promise<void>;
   openModal: () => void;
   closeModal: () => void;
   setPredictionType: (type: string) => void;
-  fetchSubjects: () => Promise<void>;
-  fetchFilterOptions: () => Promise<void>;
+
+  fetchSites: () => Promise<void>;
+  fetchSubjects: (siteId?: string) => Promise<void>;
+  fetchVisits: (subjectId: string) => Promise<void>;
+  fetchForms: (visitId: string) => Promise<void>;
+  fetchFields: ( visitId: string, formId: string) => Promise<void>;
+  fetchLovs: (fieldId: string) => Promise<void>;
 }
 
 const createDefaultLayout = (): DashboardLayout => ({
-    id: 'default',
-    name: 'Default View',
-    qualitative: {
-        charts: allCharts,
-    },
-    statistical: {
-        operations: [],
-    },
-    predictive: {
-        type: 'site-enrollment'
-    }
+  id: 'default',
+  name: 'Default View',
+  qualitative: { charts: allCharts },
+  statistical: { operations: [] },
+  predictive: { type: 'site-enrollment' }
 });
 
+export const createDashboardStore = () =>
+  createStore<DashboardState>((set, get) => ({
+    layouts: [],
+    activeLayout: null,
+    activeTab: 'qualitative',
+    filters: { sites: [], subjects: [], visits: [], forms: [], fields: [], lovs: [], operations: [] },
+    chartsData: {},
+    statisticalChartsData: {},
+    isLoading: true,
+    isFetchingNewData: false,
+    isModalOpen: false,
+    currentInsight: '',
+    currentTitle: '',
+    isLoadingInsight: false,
+    currentPrediction: '',
+    isLoadingPrediction: false,
+    predictionType: 'site-enrollment',
+    sites: [],
+    isLoadingSites: true,
+    subjects: [],
+     isLoadingSubjects: true,
+    visits: [],    
+    forms: [],
+    fields: [],
+    lovs: [],
+   
 
-export const createDashboardStore = () => createStore<DashboardState>((set, get) => ({
-  // Initial State
-  layouts: [],
-  activeLayout: null,
-  activeTab: "qualitative",
-  filters: { sites: [], visits: [], forms: [], fields: [], lovs: [], operations: [] },
-  chartsData: {},
-  statisticalChartsData: {},
-  isLoading: true,
-  isFetchingNewData: false,
-  isModalOpen: false,
-  currentInsight: '',
-  currentTitle: '',
-  isLoadingInsight: false,
-  currentPrediction: '',
-  isLoadingPrediction: false,
-  predictionType: 'site-enrollment',
-  subjects: [],
-  isLoadingSubjects: true,
-  siteOptions: [],
-  visitOptions: [],
-  formOptions: [],
-  fieldOptions: [],
-  lovOptions: [],
+    siteOptions: [],
+    subjectOptions: [],
+    visitOptions: [],
+    formOptions: [],
+    fieldOptions: [],
+    lovOptions: [],
 
-  // Actions
-  fetchLayouts: async () => {
+    // Layout logic preserved...
+    fetchLayouts: async () => {
     set({ isLoading: true });
     try {
       const response = await fetch('/api/dashboards');
@@ -150,10 +157,10 @@ export const createDashboardStore = () => createStore<DashboardState>((set, get)
        set({ activeLayout: createDefaultLayout() });
     } finally {
       set({ isLoading: false });
-    }
+    } 
   },
 
-  selectLayout: (layoutId: string) => {
+    selectLayout: (layoutId: string) => { 
     const { layouts, filters } = get();
     if (layoutId === 'default') {
       set({ 
@@ -173,7 +180,7 @@ export const createDashboardStore = () => createStore<DashboardState>((set, get)
     }
   },
 
-  saveLayout: async (name: string, showToast: (options: any) => void) => {
+    saveLayout: async (name: string) => { 
     const { activeLayout, filters, predictionType } = get();
     if (!activeLayout) return;
 
@@ -216,14 +223,13 @@ export const createDashboardStore = () => createStore<DashboardState>((set, get)
       if (newActiveLayout) {
         set({ activeLayout: newActiveLayout });
       }
-      showToast({ variant: "default", title: "Success", description: "Dashboard layout saved."});
+      console.log("Dashboard layout saved successfully.");
     } catch (error: any) {
       console.error("Failed to save dashboard layout:", error);
-      showToast({ variant: "destructive", title: "Error Saving Layout", description: error.message });
-    }
-  },
+      console.log(error.message);
+    } },
 
-  setChartLayout: (charts: any[]) => {
+    setChartLayout: (charts) => { 
     set(state => {
       if (!state.activeLayout) return {};
       const newActiveLayout = {
@@ -234,26 +240,30 @@ export const createDashboardStore = () => createStore<DashboardState>((set, get)
         }
       };
       return { activeLayout: newActiveLayout };
-    });
+    }); 
   },
-  
-  setActiveTab: (tab: string) => set({ activeTab: tab }),
 
-  applyFilters: (newFilters: Filters) => {
-    set({ filters: newFilters, isFetchingNewData: true });
-    get().fetchSubjects();
-    setTimeout(() => {
-        set({ isFetchingNewData: false, activeTab: "statistical" });
-    }, 1500);
-  },
-  
-  fetchQualitativeCharts: async () => {
-    const { activeLayout } = get();
-    if (!activeLayout?.qualitative.charts.length) return;
+    setActiveTab: (tab) => set({ activeTab: tab }),
+
+    applyFilters: (newFilters) => {
+      set({ filters: newFilters, isFetchingNewData: true });
+      if (newFilters.sites.length) {
+        get().fetchSubjects(newFilters.sites[0]);
+      }
+      setTimeout(() => {
+        set({ isFetchingNewData: false, activeTab: 'statistical' });
+      }, 1500);
+    },
+
+    fetchQualitativeCharts: async () => { const { activeLayout } = get();
+    if (!activeLayout || !activeLayout.qualitative?.charts?.length) return;
 
     try {
         const dataPromises = activeLayout.qualitative.charts.map(chart =>
-            fetch(`/api/charts/${chart.id}`).then(res => res.json())
+            fetch(`/api/charts/${chart.id}`).then(async res => {
+            const text = await res.text();
+            return text ? JSON.parse(text) : [];
+  })
         );
         const allData = await Promise.all(dataPromises);
         const newChartsData = activeLayout.qualitative.charts.reduce((acc, chart, index) => {
@@ -266,8 +276,8 @@ export const createDashboardStore = () => createStore<DashboardState>((set, get)
     }
   },
 
-  fetchStatisticalCharts: async () => {
-    const { filters } = get();
+    fetchStatisticalCharts: async () => { 
+      const { filters } = get();
     const selectedOperations = filters.operations || [];
     if (selectedOperations.length === 0) return;
     try {
@@ -283,16 +293,13 @@ export const createDashboardStore = () => createStore<DashboardState>((set, get)
     } catch (error) {
         console.error("Failed to fetch statistical chart data:", error);
     }
-  },
+    },
 
-  generateInsight: async (chartId: string, chartTitle: string, chartData: any, showToast: (options: any) => void) => {
-    if (!chartData) {
-        showToast({
-            variant: "destructive",
-            title: "Error",
-            description: "Chart data is not available for insight generation.",
-        });
-        return;
+    generateInsight: async (chartId, chartTitle, chartData) => {
+       if (!chartData) {
+        console.error("Chart data is not available for insight generation.");
+        throw new Error("Chart data not available.");
+        
     }
     set({ currentTitle: chartTitle, isLoadingInsight: true, isModalOpen: true, currentInsight: '' });
 
@@ -303,65 +310,101 @@ export const createDashboardStore = () => createStore<DashboardState>((set, get)
         });
         set({ currentInsight: result.insight });
     } catch (error: any) {
-        console.error("Failed to generate insight:", error);
-        const description = error.message.includes("GEMINI_API_KEY")
-            ? "Your GEMINI_API_KEY is not configured. Please add it to your .env file."
-            : "Could not generate AI insight. Please try again later.";
-        showToast({
-            variant: "destructive",
-            title: "Error",
-            description: description,
-        });
+         console.error("Failed to generate insight:", error);
         set({ isModalOpen: false });
+        throw error;
     } finally {
         set({ isLoadingInsight: false });
     }
-  },
-  
-  generatePrediction: async (input: PredictionInput, showToast: (options: any) => void) => {
-    set({ isLoadingPrediction: true, currentPrediction: '' });
+      
+      },
+
+    generatePrediction: async (input) => {
+       set({ isLoadingPrediction: true, currentPrediction: '' });
     try {
         const result = await getPrediction(input);
         set({ currentPrediction: result.prediction });
     } catch (error: any) {
-        console.error("Failed to generate prediction:", error);
-        const description = error.message.includes("GEMINI_API_KEY")
-            ? "Your GEMINI_API_KEY is not configured. Please add it to your .env file."
-            : "Could not generate prediction. Please try again later.";
-        showToast({
-            variant: "destructive",
-            title: "Error",
-            description: description,
-        });
+         console.error("Failed to generate prediction:", error);
+        throw error;
     } finally {
         set({ isLoadingPrediction: false });
     }
-  },
+      },
 
-  fetchSubjects: async () => {
-    set({ isLoadingSubjects: true });
-    try {
-      const { filters } = get();
-      const siteIds = filters.sites.length > 0 ? filters.sites : null;
-      const subjectData = await getSubjects(siteIds);
-      set({ subjects: subjectData, isLoadingSubjects: false });
-    } catch (error) {
-      console.error("Failed to fetch subjects:", error);
-      set({ subjects: [], isLoadingSubjects: false });
-    }
-  },
-  
-  fetchFilterOptions: async () => {
-    try {
-        const sites = await getAllSites();
-        const siteOptions = sites.map(site => ({ label: site.name, value: site.id.toString() }));
-        set({ siteOptions });
-    } catch (error) {
-        console.error("Failed to fetch filter options:", error);
-    }
-  },
+    // New secure filter fetchers
+    fetchSites: async () => {
+      set({ isLoadingSites: true });
+      try {
+        const res = await fetch(`/api/filters?type=sites`);
+        if (res.ok) {
+          const data = await res.json();
+          set({
+            sites: data,
+            siteOptions: data.map((s: any) => ({ label: s.name, value: s.id.toString() })),
+            isLoadingSites: false
+          });
+        }
+      } catch (e) {
+        console.error('Failed to fetch sites:', e);
+        set({ sites: [], isLoadingSites: false });
+      }
+    },
 
-  openModal: () => set({ isModalOpen: true }),
-  closeModal: () => set({ isModalOpen: false, currentTitle: '', currentInsight: '' }),
-  setPredictionType: (type: string) => set({ predictionType: type }),
-}));
+    fetchSubjects: async (siteId) => {
+      set({ isLoadingSubjects: true });
+      try {
+        const id = siteId || get().filters.sites[0];
+        const res = await fetch(`/api/filters?type=subjects&id=${id}`);
+        if (res.ok) {
+          const data = await res.json();
+          set({
+            subjects: data,
+            visitOptions: data.map((s: any) => ({ label: s.name, value: s.id.toString() })),
+            isLoadingSubjects: false
+          });
+        }
+      } catch (e) {
+        console.error('Failed to fetch subjects:', e);
+        set({ subjects: [], isLoadingSubjects: false });
+      }
+    },
+
+    fetchVisits: async (subjectId) => {
+      const res = await fetch(`/api/filters?type=visits&id=${subjectId}`);
+      if (res.ok) {
+        const data = await res.json();
+        set({ visitOptions: data.map((v: any) => ({ label: v.name, value: v.id.toString() })) });
+      }
+    },
+
+    fetchForms: async (visitId) => {
+      const res = await fetch(`/api/filters?type=forms&id=${visitId}`);
+      if (res.ok) {
+        const data = await res.json();
+        set({ formOptions: data.map((f: any) => ({ label: f.name, value: f.id.toString() })) });
+      }
+    },
+
+    fetchFields: async (formId) => {
+      // const { visitId } = get(); // Zustand's state getter to access current visitId
+  // if (!visitId) return; // optional safety check
+      const res = await fetch(`/api/filters?type=fields&id=${formId}`);
+      if (res.ok) {
+        const data = await res.json();
+        set({ fieldOptions: data.map((f: any) => ({ label: f.name, value: f.id.toString() })) });
+      }
+    },
+
+    fetchLovs: async (fieldId) => {
+      const res = await fetch(`/api/filters?type=lovs&id=${fieldId}`);
+      if (res.ok) {
+        const data = await res.json();
+        set({ lovOptions: data.map((l: any) => ({ label: l.name, value: l.id.toString() })) });
+      }
+    },
+
+    openModal: () => set({ isModalOpen: true }),
+    closeModal: () => set({ isModalOpen: false, currentTitle: '', currentInsight: '' }),
+    setPredictionType: (type) => set({ predictionType: type }),
+  }));

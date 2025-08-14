@@ -6,13 +6,14 @@
 // but does not handle tokens directly. Token management is
 // done via secure, httpOnly cookies handled by the server.
 
-const API_BASE_URL = '/api/auth'; // Use a relative path to our app's auth routes
-
+const LOGIN_API_URL = '/api/auth/login';
+const LOGOUT_API_URL = '/api/auth/logout';
 export async function login(username: string, password: string): Promise<boolean> {
-  const response = await fetch(`${API_BASE_URL}/login`, {
+  
+  const response = await fetch(LOGIN_API_URL, {
     method: 'POST',
     headers: {
-      'Content-Type': 'application/json',
+       'Content-Type': 'application/json',
     },
     body: JSON.stringify({ username, password }),
   });
@@ -27,7 +28,7 @@ export async function login(username: string, password: string): Promise<boolean
 
 export async function logout(): Promise<void> {
   try {
-    await fetch(`${API_BASE_URL}/logout`, { method: 'POST' });
+    await fetch(LOGOUT_API_URL, { method: 'POST' });
   } catch (error) {
     console.error("Logout failed:", error);
   } finally {
@@ -38,7 +39,7 @@ export async function logout(): Promise<void> {
 
 export async function isAuthenticated(): Promise<boolean> {
   try {
-    const response = await fetch(`${API_BASE_URL}/status`);
+     const response = await fetch('/api/auth/status'); 
     if (!response.ok) return false;
     const data = await response.json();
     return data.isAuthenticated === true;

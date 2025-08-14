@@ -15,18 +15,23 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 import { Terminal } from 'lucide-react';
+import { useToast } from '@/hooks/use-toast';
+import { useDashboardStore } from '@/store/dashboard-store-provider';
 
 const MAX_DASHBOARDS = 10;
 
 interface SaveDashboardDialogProps {
   isOpen: boolean;
   onClose: () => void;
-  onSave: (name: string) => void;
+  // onSave: (name: string) => void;
   existingLayoutCount: number;
 }
 
-export function SaveDashboardDialog({ isOpen, onClose, onSave, existingLayoutCount }: SaveDashboardDialogProps) {
+export function SaveDashboardDialog({ isOpen, onClose, existingLayoutCount }: SaveDashboardDialogProps) {
   const [name, setName] = useState('');
+  const { toast } = useToast();
+  const saveLayout = useDashboardStore((state) => state.saveLayout);
+
 
   useEffect(() => {
     if (isOpen) {
@@ -34,10 +39,16 @@ export function SaveDashboardDialog({ isOpen, onClose, onSave, existingLayoutCou
     }
   }, [isOpen]);
 
-  const handleSave = () => {
+   const handleSave = async () => {
     if (name.trim()) {
-      onSave(name.trim());
-      onClose();
+       try {
+        await saveLayout(name.trim());
+        toast({ variant: "default", title: "Success", description: "Dashboard layout saved." });
+      } catch (error: any) {
+        toast({ variant: "destructive", title: "Error Saving Layout", description: error.message });
+      } finally {
+        onClose();
+      }
     }
   };
   
